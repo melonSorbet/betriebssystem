@@ -1,4 +1,3 @@
-
 #include "arch/bsp/uart.h"
 #include <lib/kprintf.h>
 #include <stdarg.h>
@@ -6,7 +5,7 @@
 #include <lib/alib.h>
 #include <stdint.h>
 #define POINTER_STRING_LENGTH 11
-
+void kprintf(const char *fmt, ...);
 // Helper: print padding
 static void print_padding(int width, char pad_char, int content_len)
 {
