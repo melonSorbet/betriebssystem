@@ -99,7 +99,7 @@ static void send_int_width(int value, int width, char pad_char)
 
 	if (pad_char == '0' && value < 0) {
 		uart_putc('-'); // print minus first
-		print_padding(width, pad_char, len - 1); // subtract 1 because '-' already printed
+		print_padding(width, pad_char, len); // subtract 1 because '-' already printed
 		uart_puts(buf + 1); // skip the minus in the string
 	} else {
 		print_padding(width, pad_char, len);
