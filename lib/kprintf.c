@@ -41,6 +41,26 @@ static int int_to_str(int value, char *buffer)
 	return len;
 }
 
+static int uint_to_str(unsigned int value, char *buffer)
+{
+    int len = 0;
+
+    do {
+        buffer[len++] = '0' + (value % 10);
+        value /= 10;
+    } while (value > 0);
+
+    // reverse
+    for (int i = 0; i < len / 2; i++) {
+        char tmp = buffer[i];
+        buffer[i] = buffer[len - 1 - i];
+        buffer[len - 1 - i] = tmp;
+    }
+
+    buffer[len] = '\0';
+    return len;
+}
+
 // Helper: convert unsigned int to lowercase hex string
 static int uint_to_hex_str(unsigned int value, char *buffer)
 {
@@ -95,7 +115,7 @@ static void send_unsigned_width(unsigned int value, int width, char pad_char, bo
 	if (hex)
 		len = uint_to_hex_str(value, buf);
 	else
-		len = int_to_str(value, buf); // for %u
+		len = uint_to_str(value, buf); // for %u
 
 	print_padding(width, pad_char, len);
 	uart_puts(buf);
