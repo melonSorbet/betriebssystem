@@ -4,4 +4,4 @@ char uart_getc();
 
 void uart_putc(char input);
 
-void uart_puts(const char* string);
+void uart_puts(const char *string);
