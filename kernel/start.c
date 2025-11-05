@@ -1,4 +1,5 @@
 #include <arch/bsp/yellow_led.h>
+#include <lib/kprintf.h>
 #include <arch/bsp/uart.h>
 #include "lib/kprintf.h"
 #include <config.h>
@@ -11,7 +12,6 @@ static volatile unsigned int counter = 0;
 */
 
 #include "arch/bsp/uart.h"
-#include <lib/kprintf.h>
 #include <stdint.h>
 
 void test_kprintf(void)
