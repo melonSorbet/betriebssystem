@@ -6,60 +6,7 @@
 #include <lib/alib.h>
 #include <stdint.h>
 #define POINTER_STRING_LENGTH 11
-void kprintf(const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
 
-	while (*fmt) {
-		if (*fmt == '%') {
-			fmt++;
-			char pad_char = ' ';
-			int  width    = 0;
-
-			if (*fmt == '0') {
-				pad_char = '0';
-				fmt++;
-			}
-			if (*fmt >= '0' && *fmt <= '9') {
-				width = *fmt - '0';
-				fmt++;
-			}
-
-			switch (*fmt++) {
-			case 'c':
-				uart_putc(va_arg(args, int));
-				break;
-			case 's':
-				uart_puts(va_arg(args, const char *));
-				break;
-			case 'i':
-				send_int_width(va_arg(args, int), width, pad_char);
-				break;
-			case 'u':
-				send_unsigned_width(va_arg(args, unsigned int), width, pad_char,
-						    false);
-				break;
-			case 'x':
-				send_unsigned_width(va_arg(args, unsigned int), width, pad_char,
-						    true);
-				break;
-			case 'p':
-				send_pointer(va_arg(args, void *));
-				break;
-			case '%':
-				uart_putc('%');
-				break;
-			default:
-				uart_puts("Unknown conversion specifier");
-			}
-		} else {
-			uart_putc(*fmt++);
-		}
-	}
-
-	va_end(args);
-}
 // Helper: print padding
 static void print_padding(int width, char pad_char, int content_len)
 {
@@ -191,4 +138,57 @@ static void send_pointer(void *ptr)
 }
 
 // Main kprintf
+void kprintf(const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
 
+	while (*fmt) {
+		if (*fmt == '%') {
+			fmt++;
+			char pad_char = ' ';
+			int  width    = 0;
+
+			if (*fmt == '0') {
+				pad_char = '0';
+				fmt++;
+			}
+			if (*fmt >= '0' && *fmt <= '9') {
+				width = *fmt - '0';
+				fmt++;
+			}
+
+			switch (*fmt++) {
+			case 'c':
+				uart_putc(va_arg(args, int));
+				break;
+			case 's':
+				uart_puts(va_arg(args, const char *));
+				break;
+			case 'i':
+				send_int_width(va_arg(args, int), width, pad_char);
+				break;
+			case 'u':
+				send_unsigned_width(va_arg(args, unsigned int), width, pad_char,
+						    false);
+				break;
+			case 'x':
+				send_unsigned_width(va_arg(args, unsigned int), width, pad_char,
+						    true);
+				break;
+			case 'p':
+				send_pointer(va_arg(args, void *));
+				break;
+			case '%':
+				uart_putc('%');
+				break;
+			default:
+				uart_puts("Unknown conversion specifier");
+			}
+		} else {
+			uart_putc(*fmt++);
+		}
+	}
+
+	va_end(args);
+}
