@@ -1,16 +1,18 @@
 void kprintf(const char *input, ...);
 
-void send_string(const char *string);
+void print_padding(int width, char pad_char, int content_len);
 
-void send_char(int asci_encoding);
 
-void send_int(int integer);
+int int_to_str(int value, char *buffer);
 
-void send_unsigned_int(unsigned int unsigned_integer);
 
-void send_pointer_as_hex(void *pointer);
+int uint_to_str(unsigned int value, char *buffer);
 
-void send_percent_sign();
 
-void send_unsinged_int_as_hex(unsigned int unsigned_integer);
+int uint_to_hex_str(unsigned int value, char *buffer);
 
+void send_int_width(int value, int width, char pad_char);
+
+void send_unsigned_width(unsigned int value, int width, char pad_char, bool hex);
+
+void send_pointer(void *ptr);
