@@ -14,4 +14,3 @@ void send_percent_sign();
 
 void send_unsinged_int_as_hex(unsigned int unsigned_integer);
 
-static void print_padding(int width, char pad_char, int content_len);

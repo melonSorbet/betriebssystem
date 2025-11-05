@@ -4,10 +4,11 @@
 #include <config.h>
 static volatile unsigned int counter = 0;
 
-static void increment_counter(void)
+/*static void increment_counter(void)
 {
 	counter++;
 }
+*/
 
 #include "arch/bsp/uart.h"
 #include <lib/kprintf.h>

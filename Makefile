@@ -79,7 +79,7 @@ USRC = user/main.c
 # Die vorgegebenen Flags können weiter unten gefunden werden unter
 # CFLAGS_ALL und dürfen nicht verändert werden
 # Bsp: CFLAGS = -Wpedantic -Werror -O2
-CFLAGS = -std=gnu23
+CFLAGS = -std=gnu23 -Wpedantic 
 
 # 'strict' Modus
 ifeq ($(MODE), strict)
