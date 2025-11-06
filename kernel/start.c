@@ -3,13 +3,6 @@
 #include <arch/bsp/uart.h>
 #include "lib/kprintf.h"
 #include <config.h>
-static volatile unsigned int counter = 0;
-
-/*static void increment_counter(void)
-{
-	counter++;
-}
-*/
 
 #include "arch/bsp/uart.h"
 #include <stdint.h>
@@ -56,11 +49,11 @@ void start_kernel [[noreturn]] (void)
 
 	while (true) {
 		char c = uart_getc();
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
 		kprintf("Es wurde folgendes Zeichen eingegeben: %c, In Hexadezimal: %x, "
 			"In Dezimal: %08i, Als Ptr: %p\n",
 			c, (unsigned int)c, (int)c, (void *)c);
-#pragma GCC diagnostic pop
+		#pragma GCC diagnostic pop
 	}
 }
