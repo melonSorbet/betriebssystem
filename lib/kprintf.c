@@ -97,22 +97,22 @@ int int_to_str(int value, char *buffer)
 
 int uint_to_str(unsigned int value, char *buffer)
 {
-    int len = 0;
+	int len = 0;
 
-    do {
-        buffer[len++] = '0' + (value % 10);
-        value /= 10;
-    } while (value > 0);
+	do {
+		buffer[len++] = '0' + (value % 10);
+		value /= 10;
+	} while (value > 0);
 
-    // reverse
-    for (int i = 0; i < len / 2; i++) {
-        char tmp = buffer[i];
-        buffer[i] = buffer[len - 1 - i];
-        buffer[len - 1 - i] = tmp;
-    }
+	// reverse
+	for (int i = 0; i < len / 2; i++) {
+		char tmp	    = buffer[i];
+		buffer[i]	    = buffer[len - 1 - i];
+		buffer[len - 1 - i] = tmp;
+	}
 
-    buffer[len] = '\0';
-    return len;
+	buffer[len] = '\0';
+	return len;
 }
 
 // Helper: convert unsigned int to lowercase hex string
@@ -190,4 +190,3 @@ void send_pointer(void *ptr)
 	buf[10] = '\0';
 	uart_puts(buf);
 }
-
