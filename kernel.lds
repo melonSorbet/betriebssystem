@@ -26,4 +26,5 @@ SECTIONS
     . += STACK_GAP + STACK_SIZE; abort_stack_top = .;
     . += STACK_GAP + STACK_SIZE; und_stack_top = .;
     . += STACK_GAP + STACK_SIZE; sys_stack_top = .;
+    . += STACK_GAP + STACK_SIZE; fiq_stack_top = .;
 }

@@ -1,6 +1,17 @@
 
 .section .init
+// macro
+.macro SET_SP mode, sp_top
+    mrs r0, cpsr
+    orr r0, r0, #(1<<6 | 1<<7)   /* disable FIQ/IRQ */
+    msr cpsr_c, r0
 
+    /* Switch to mode */
+    msr cpsr_c, \mode
+    ldr sp, =\sp_top
+    /* Switch back to SVC */
+    msr cpsr_c, #0x13
+.endm
 .global _start
 _start:
 	/* Erkennen ob Hypervisor Mode aktiv */
@@ -35,15 +46,15 @@ _enableAlignCheck:
 
 
 _bsprak:
-	/* Validen Stack Pointer setzten */
-	ldr sp,=0x100000
-
-	// setup all the other stack pointers:
-	SET_SP 0x13, svc_stack_top   /* SVC */
+        SET_SP 0x13, svc_stack_top   /* SVC */
 	SET_SP 0x17, abort_stack_top /* Abort */
 	SET_SP 0x1B, und_stack_top   /* Undefined */
 	SET_SP 0x12, irq_stack_top   /* IRQ */
 	SET_SP 0x11, fiq_stack_top   /* FIQ */
+	/* Validen Stack Pointer setzten */
+	ldr sp,=0x100000
+
+	
 	/* Zu c Code springen */
 	bl  start_kernel
 .Lend:
@@ -76,15 +87,4 @@ _exitHyper:
 	msr spsr_hyp, r0
 	eret
 
-// macro
-.macro SET_SP mode, sp_top
-    mrs r0, cpsr
-    orr r0, r0, #(1<<6 | 1<<7)   /* disable FIQ/IRQ */
-    msr cpsr_c, r0
 
-    /* Switch to mode */
-    msr cpsr_c, \mode
-    ldr sp, =\sp_top
-    /* Switch back to SVC */
-    msr cpsr_c, #0x13
-.endm
