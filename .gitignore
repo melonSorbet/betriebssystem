@@ -1,3 +1,5 @@
 build
 *.pdf
 *.gz
+.idea/
+desktop.ini
