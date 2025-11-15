@@ -1,3 +1,6 @@
+RAM_BASE = 0x00000000;
+RAM_SIZE = 0x40000000;
+STACK_REGION_SIZE = 0x5000;
 ENTRY(_start)
 SECTIONS
 {
@@ -11,25 +14,29 @@ SECTIONS
 	. = ALIGN(1<<20);
 	.data : { *(.data) }
 	.bbs  : { *(.bbs)  }
+	. = RAM_BASE + RAM_SIZE - STACK_REGION_SIZE;
+	. = ALIGN(8);
+	__stack_region_start = .;
+
+	/* IRQ stack */
+	. += 0x1000;
+	irq_stack_top = .;
+
+	/* SVC stack */
+	. += 0x1000;
+	svc_stack_top = .;
+
+	/* Abort stack */
+	. += 0x1000;
+	abort_stack_top = .;
+
+	/* Undefined stack */
+	. += 0x1000;
+	und_stack_top = .;
+
+	/* System/User stack */
+	. += 0x1000;
+	sys_stack_top = .;
+
+	__stack_region_end = .;
 }
-/* Define stack regions */
-. = ALIGN(8); /* Ensure 8-byte alignment */
-__stack_start = .;
-
-/* Reserve space for each stack */
-. += 0x1000; /* 4KB for IRQ stack */
-irq_stack_top = .;
-
-. += 0x1000; /* 4KB for SVC stack */
-svc_stack_top = .;
-
-. += 0x1000; /* 4KB for Abort stack */
-abort_stack_top = .;
-
-. += 0x1000; /* 4KB for Undefined stack */
-und_stack_top = .;
-
-. += 0x1000; /* 4KB for System stack */
-sys_stack_top = .;
-
-__stack_end = .;
