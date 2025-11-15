@@ -46,17 +46,21 @@ _enableAlignCheck:
 
 
 _bsprak:
-        SET_SP 0x13, svc_stack_top   /* SVC */
-	SET_SP 0x17, abort_stack_top /* Abort */
-	SET_SP 0x1B, und_stack_top   /* Undefined */
-	SET_SP 0x12, irq_stack_top   /* IRQ */
-	SET_SP 0x11, fiq_stack_top   /* FIQ */
-	/* Validen Stack Pointer setzten */
-	ldr sp,=0x100000
+    /* 1) Set SP for current mode (SVC) first */
+    ldr sp, =svc_stack_top
 
-	
-	/* Zu c Code springen */
-	bl  start_kernel
+    /* 2) Initialize banked SPs for exceptions only */
+    SET_SP 0x11, fiq_stack_top   /* FIQ */
+    SET_SP 0x12, irq_stack_top   /* IRQ */
+    SET_SP 0x17, abort_stack_top /* Abort */
+    SET_SP 0x1B, und_stack_top   /* Undefined */
+
+    /* 3) Set System/User SP safely in SVC mode */
+    ldr r0, =sys_stack_top
+    mov sp, r0
+
+    /* 4) Jump to C kernel */
+    bl start_kernel
 .Lend:
 	WFI
 	b .Lend

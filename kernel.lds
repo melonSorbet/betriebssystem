@@ -17,14 +17,26 @@ SECTIONS
 	. = ALIGN(1<<20);
 	.data : { *(.data) }
 	.bbs  : { *(.bbs)  }
-	. = RAM_BASE + RAM_SIZE - (STACK_SIZE+STACK_GAP)*5; /* adjust total stacks+gaps */
-    . = ALIGN(8);
-    __stack_region_start = .;
+	. = RAM_BASE + RAM_SIZE - (STACK_SIZE+STACK_GAP)*6; /* adjust total stacks+gaps */
+	. = ALIGN(8);
+	__stack_region_start = .;
 
-    . += STACK_SIZE; irq_stack_top = .;
-    . += STACK_GAP + STACK_SIZE; svc_stack_top = .;
-    . += STACK_GAP + STACK_SIZE; abort_stack_top = .;
-    . += STACK_GAP + STACK_SIZE; und_stack_top = .;
-    . += STACK_GAP + STACK_SIZE; sys_stack_top = .;
-    . += STACK_GAP + STACK_SIZE; fiq_stack_top = .;
+	fiq_stack_top   = . + STACK_SIZE;
+	. += STACK_SIZE + STACK_GAP;
+
+	irq_stack_top   = . + STACK_SIZE;
+	. += STACK_SIZE + STACK_GAP;
+
+	abort_stack_top = . + STACK_SIZE;
+	. += STACK_SIZE + STACK_GAP;
+
+	und_stack_top   = . + STACK_SIZE;
+	. += STACK_SIZE + STACK_GAP;
+
+	svc_stack_top   = . + STACK_SIZE;
+	. += STACK_SIZE + STACK_GAP;
+
+	sys_stack_top   = . + STACK_SIZE;
+	. += STACK_SIZE + STACK_GAP;
+
 }
