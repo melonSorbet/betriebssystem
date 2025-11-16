@@ -57,7 +57,8 @@ _bsprak:
 	cpsie i
 	cpsie f
 	/* Validen Stack Pointer setzten */
-	ldr sp,=0x100000
+	SET_SP 0x13, svc_stack_top   /* already done earlier, ensures SVC stack is valid */
+	cps #0x13                   /* make sure we are in SVC mode */
 
 	
 	/* Zu c Code springen */

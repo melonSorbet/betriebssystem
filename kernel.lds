@@ -17,14 +17,27 @@ SECTIONS
 	. = ALIGN(1<<20);
 	.data : { *(.data) }
 	.bbs  : { *(.bbs)  }
-	. = RAM_BASE + RAM_SIZE - (STACK_SIZE+STACK_GAP)*6; /* adjust total stacks+gaps */
-    . = ALIGN(8);
-    __stack_region_start = .;
+	. = ALIGN(8); /* Ensure 8-byte alignment */
+	__stack_start = .;
 
-    . += STACK_SIZE; irq_stack_top = .;
-    . += STACK_GAP + STACK_SIZE; svc_stack_top = .;
-    . += STACK_GAP + STACK_SIZE; abort_stack_top = .;
-    . += STACK_GAP + STACK_SIZE; und_stack_top = .;
-    . += STACK_GAP + STACK_SIZE; sys_stack_top = .;
-    . += STACK_GAP + STACK_SIZE; fiq_stack_top = .;
+	/* Reserve space for each stack */
+	. += 0x1000; /* 4KB for IRQ stack */
+	irq_stack_top = .;
+
+	. += 0x1000; /* 4KB for SVC stack */
+	svc_stack_top = .;
+
+	. += 0x1000; /* 4KB for Abort stack */
+	abort_stack_top = .;
+
+	. += 0x1000; /* 4KB for Undefined stack */
+	und_stack_top = .;
+
+	. += 0x1000; /* 4KB for System stack */
+	sys_stack_top = .;
+
+	. += 0x1000; /* 4KB for FIQ stack */
+	fiq_stack_top = .;
+
+	__stack_end = .;
     }
