@@ -40,20 +40,71 @@ void test_kprintf(void)
 
 	kprintf("=== kprintf Test End ===\n");
 }
+void do_data_abort(void) {
+    volatile int *ptr = (int*)0;
+    *ptr = 42; // erzwingt Data Abort
+}
+void do_prefetch_abort(void) {
+    void (*bad_func)(void) = (void (*)(void))0xDEADBEEF;
+    bad_func(); // Prefetch Abort
+}
+
+void do_supervisor_call(void) {
+    asm volatile("svc 0");
+}
+
+void do_undefined_inst(void) {
+    asm volatile(".word 0xE7F000F0"); // undefined instruction
+}
+
+void register_checker(void) {
+    // Liest und zeigt Registerinhalte
+}
+
+
+void subprogram [[noreturn]] (void) {
+	while(true) {
+		char c = uart_getc();
+		for(unsigned int n = 0; n < PRINT_COUNT; n++) {
+			uart_putc(c);
+			volatile unsigned int i = 0;
+			for(; i < BUSY_WAIT_COUNTER; i++) {}
+		}
+	}
+}
 void start_kernel [[noreturn]] (void);
 void start_kernel [[noreturn]] (void)
 {
 	test_kprintf();
 	kprintf("=== Betriebssystem gestartet ===\n");
 	test_kernel();
-
-	while (true) {
+	while(true) {
 		char c = uart_getc();
-		#pragma GCC diagnostic push
-		#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
-		kprintf("Es wurde folgendes Zeichen eingegeben: %c, In Hexadezimal: %x, "
-			"In Dezimal: %08i, Als Ptr: %p\n",
-			c, (unsigned int)c, (int)c, (void *)c);
-		#pragma GCC diagnostic pop
+		switch(c) {
+			case 'd':
+				irq_debug = !irq_debug;
+				break;
+			case 'a':
+				do_data_abort();
+				break;
+			case 'p':
+				do_prefetch_abort();
+				break;
+			case 's':
+				do_supervisor_call();
+				break;
+			case 'u':
+				do_undefined_inst();
+				break;
+			case 'c':
+				register_checker();
+				break;
+			case 'e':
+				subprogram();
+			default:
+				kprintf("Unknown input: %c\n", c);
+				break;
+		}
 	}
 }
+

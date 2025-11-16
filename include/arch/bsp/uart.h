@@ -23,7 +23,6 @@ typedef struct {
     volatile uint32_t DisableIRQs2;
     volatile uint32_t DisableBasicIRQs;
 } GPU_Interrupt_Controller;
-
 // --- Externe Variablen & Funktionen ---
 extern volatile GPU_Interrupt_Controller* const gpu_interrupt;
 extern void uart_irq_handler(void);
