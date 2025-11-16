@@ -4,6 +4,7 @@
 #include "lib/print_exception.h"  // Make sure the prototype is here
 
 #include <arch/cpu/mode_registers.h>
+#include <arch/bsp/uart.h>
 // Helper for common handling
 static void handle_exception(
     exc_frame_t* frame,
@@ -37,16 +38,21 @@ static void handle_exception(
         supervisor_spsr
     );
 }
+#define UART_IRQ_BIT (1 << 25)
 
 void software_interrupt_c(exc_frame_t *frame) {
     handle_exception(frame, "Software Interrupt", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 void irq_c(exc_frame_t *frame) {
+    if (gpu_interrupt->IRQPending2 & UART_IRQ_BIT) {
+        uart_irq_handler();
+    }
     handle_exception(frame, "IRQ", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 void fiq_c(exc_frame_t *frame) {
+
     handle_exception(frame, "FIQ", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 

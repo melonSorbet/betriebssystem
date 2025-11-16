@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <stddef.h> // For NULL
 #include <lib/kprintf.h>
-
+#include "arch/bsp/uart.h"
 #define PL011_BUS_BASE 0x7E201000
 #define BUS_BASE 0x7E000000
 #define CPU_PERIPHERAL_BASE 0x3F000000
@@ -62,20 +62,7 @@ static volatile UART* const uart = (UART*)(PL011_BASE);
 #define GPU_INTERRUPTS_BUS_BASE 0x7E00B000
 #define GPU_INTERRUPTS_CPU_PHYSICAL (((GPU_INTERRUPTS_BUS_BASE - BUS_BASE) + CPU_PERIPHERAL_BASE) + 0x200)
 
-typedef struct {
-    volatile uint32_t IRQBasicPending;
-    volatile uint32_t IRQPending1;
-    volatile uint32_t IRQPending2;
-    volatile uint32_t FIQControl;
-    volatile uint32_t EnableIRQs1;
-    volatile uint32_t EnableIRQs2;
-    volatile uint32_t EnableBasicIRQs;
-    volatile uint32_t DisableIRQs1;
-    volatile uint32_t DisableIRQs2;
-    volatile uint32_t DisableBasicIRQs;
-} GPU_Interrupt_Controller;
-
-static volatile GPU_Interrupt_Controller* const gpu_interrupt = (GPU_Interrupt_Controller*)(GPU_INTERRUPTS_CPU_PHYSICAL);
+volatile GPU_Interrupt_Controller* const gpu_interrupt =(GPU_Interrupt_Controller*)GPU_INTERRUPTS_CPU_PHYSICAL;
 
 
 // --- Ring Buffer for Received Characters ---
@@ -147,3 +134,24 @@ void uart_loopback [[noreturn]] (void){
 }
 
 
+
+// --- UART IRQ Handler ---
+void uart_irq_handler(void) {
+    // Solange Daten im UART-FIFO verfügbar sind
+    while (!(uart->FR & PL011_FR_RXFE)) {
+        char c = (char)uart->DR;
+
+        // Ringbuffer Overflow verhindern
+        unsigned int next_head = (uart_rx_head + 1) % UART_INPUT_BUFFER_SIZE;
+        if (next_head != uart_rx_tail) {
+            uart_rx_ring_buffer[uart_rx_head] = c;
+            uart_rx_head = next_head;
+        } else {
+            // Buffer voll, Zeichen verwerfen oder optional Overflow-Zähler erhöhen
+        }
+
+    }
+
+    // Interrupts im UART löschen
+    uart->ICR = PL011_INT_RXIM | PL011_INT_RTIM | PL011_INT_OEIM;
+}
