@@ -52,6 +52,10 @@ _bsprak:
 	SET_SP 0x12, irq_stack_top   /* IRQ */
 	SET_SP 0x11, fiq_stack_top   /* FIQ */
 	SET_SP 0x1F, sys_stack_top    /* System/User */
+	ldr r0, =_ivt
+	mcr p15, 0, r0, c12, c0, 0   
+	cpsie i
+	cpsie f
 	/* Validen Stack Pointer setzten */
 	ldr sp,=0x100000
 
