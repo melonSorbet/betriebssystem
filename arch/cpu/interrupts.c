@@ -55,10 +55,18 @@ void irq_c(exc_frame_t *frame) {
 void fiq_c(exc_frame_t *frame) {
 
     handle_exception(frame, "FIQ", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    // End-of-transmission
+    uart_putc(4);
+    // Halt
+    while (true) {}
 }
 
 void undefined_instruction_c(exc_frame_t *frame) {
     handle_exception(frame, "Undefined Instruction", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    // End-of-transmission
+    uart_putc(4);
+    // Halt
+    while (true) {}
 }
 
 void prefetch_abort_c(exc_frame_t *frame) {
@@ -66,21 +74,30 @@ void prefetch_abort_c(exc_frame_t *frame) {
     unsigned int ifar = read_ifar();
     handle_exception(frame, "Prefetch Abort", false, true, 0, 0, ifsr, ifar, 0, 0, 0, 0, 0);
 
-    // Skip the instruction to avoid infinite loop (for debugging)
-    frame->lr += 4;
+    // End-of-transmission
+    uart_putc(4);
+    // Halt
+    while (true) {}
 }
-
 
 void data_abort_c(exc_frame_t *frame) {
     unsigned int dfsr = read_dfsr();
     unsigned int dfar = read_dfar();
-    handle_exception(frame, "Data Abort", true, false, dfsr, dfar, 0, 0, 0, 0, 0, 0, 0);
 
-    // Skip the instruction to avoid infinite loop (for debugging)
-    frame->lr += 4;
+    print_exception_infos(frame, "Data Abort", frame->lr,
+                          true, false, dfsr, dfar, 0, 0, 0, 0, 0, 0, 0);
+
+    // End-of-transmission
+    uart_putc(4);
+    // Halt
+    while (true) {}
 }
 
 void not_used_c(exc_frame_t *frame) {
     handle_exception(frame, "Not Used", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    // End-of-transmission
+    uart_putc(4);
+    // Halt
+    while (true) {}
 }
 
