@@ -40,9 +40,11 @@ static void handle_exception(
 }
 #define UART_IRQ_BIT (1 << 25)
 
-void software_interrupt_c(exc_frame_t *frame) {
-    handle_exception(frame, "Software Interrupt", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    frame->lr += 4; // skip the SVC instruction
+void software_interrupt_c(exc_frame_t* frame) {
+    print_exception_infos(frame, "Supervisor Call (SVC)", frame->lr,
+                          false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    uart_putc(4);  // End-of-transmission
+    while(true) {} // Halt
 }
 
 void irq_c(exc_frame_t *frame) {
