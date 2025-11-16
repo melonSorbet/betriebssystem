@@ -82,6 +82,7 @@ void start_kernel [[noreturn]] (void)
 		char c = uart_getc();
 		switch(c) {
 			case 'd':
+				kprintf("debug mode activated");
 				irq_debug = !irq_debug;
 				break;
 			case 'a':

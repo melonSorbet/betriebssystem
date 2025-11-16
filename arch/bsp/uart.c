@@ -104,15 +104,8 @@ void uart_putc(char input){
 
 
 char uart_getc(void){
-    
-    while (uart_rx_head == uart_rx_tail) {
-    }
-
-    char c = uart_rx_ring_buffer[uart_rx_tail];
-
-    uart_rx_tail = (uart_rx_tail + 1) % UART_INPUT_BUFFER_SIZE;
-
-    return c;
+   while (uart->FR & PL011_FR_RXFE) {}  // Warten auf UART FIFO
+    return (char)uart->DR;
 }
 
 // --- UART Put String Function ---
@@ -134,7 +127,7 @@ void uart_loopback [[noreturn]] (void){
 }
 
 
-
+bool irq_debug = false; 
 // --- UART IRQ Handler ---
 void uart_irq_handler(void) {
     // Solange Daten im UART-FIFO verfügbar sind
