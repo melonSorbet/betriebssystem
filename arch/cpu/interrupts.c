@@ -42,6 +42,7 @@ static void handle_exception(
 
 void software_interrupt_c(exc_frame_t *frame) {
     handle_exception(frame, "Software Interrupt", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    frame->lr += 4; // skip the SVC instruction
 }
 
 void irq_c(exc_frame_t *frame) {
@@ -61,15 +62,22 @@ void undefined_instruction_c(exc_frame_t *frame) {
 }
 
 void prefetch_abort_c(exc_frame_t *frame) {
-    unsigned int ifsr = read_ifsr();  // You need a function to read the IFSR
-    unsigned int ifar = read_ifar();  // And one for IFAR
+    unsigned int ifsr = read_ifsr();
+    unsigned int ifar = read_ifar();
     handle_exception(frame, "Prefetch Abort", false, true, 0, 0, ifsr, ifar, 0, 0, 0, 0, 0);
+
+    // Skip the instruction to avoid infinite loop (for debugging)
+    frame->lr += 4;
 }
 
+
 void data_abort_c(exc_frame_t *frame) {
-    unsigned int dfsr = read_dfsr();  // Read Data Fault Status Register
-    unsigned int dfar = read_dfar();  // Read Data Fault Address Register
+    unsigned int dfsr = read_dfsr();
+    unsigned int dfar = read_dfar();
     handle_exception(frame, "Data Abort", true, false, dfsr, dfar, 0, 0, 0, 0, 0, 0, 0);
+
+    // Skip the instruction to avoid infinite loop (for debugging)
+    frame->lr += 4;
 }
 
 void not_used_c(exc_frame_t *frame) {
