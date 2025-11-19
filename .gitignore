@@ -3,3 +3,5 @@ build
 *.gz
 .idea/
 desktop.ini
+.cache/
+desktop.ini
