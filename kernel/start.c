@@ -6,6 +6,7 @@
 
 #include "arch/bsp/uart.h"
 #include <stdint.h>
+#include <arch/bsp/systimer.h>
 
 void test_kprintf(void)
 {
@@ -76,6 +77,7 @@ void start_kernel [[noreturn]] (void);
 void start_kernel [[noreturn]] (void)
 {
 	test_kprintf();
+	systimer_init();
 	kprintf("=== Betriebssystem gestartet ===\n");
 	test_kernel();
 	while(true) {

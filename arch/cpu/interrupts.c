@@ -5,6 +5,7 @@
 
 #include <arch/cpu/mode_registers.h>
 #include <arch/bsp/uart.h>
+#include <arch/bsp/systimer.h>
 // Helper for common handling
 static void handle_exception(
     exc_frame_t* frame,
@@ -48,10 +49,15 @@ void software_interrupt_c(exc_frame_t* frame) {
 }
 
 void irq_c(exc_frame_t *frame) {
-    if (gpu_interrupt->IRQPending2 & UART_IRQ_BIT) {
-        uart_irq_handler();
-    }
-    handle_exception(frame, "IRQ", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	if (gpu_interrupt->IRQPending2 & UART_IRQ_BIT) {
+		uart_irq_handler();
+	}
+
+	(void)systimer_handle_irq();
+
+	if (irq_debug) {
+		handle_exception(frame, "IRQ", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	}
 }
 
 void fiq_c(exc_frame_t *frame) {
