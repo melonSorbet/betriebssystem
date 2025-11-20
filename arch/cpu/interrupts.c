@@ -41,26 +41,20 @@ static void handle_exception(
 #define UART_IRQ_BIT (1 << 25)
 
 void software_interrupt_c(exc_frame_t* frame) {
-    // For SVC, LR_svc holds the return address
-    unsigned int svc_return_addr = frame->lr - 4; // adjust if frame->lr is not the SVC LR
-    // sometimes: svc_return_addr = get_svc_lr_from_stack(frame);
-
+    unsigned int svc_return_addr = frame->lr - 4; // LR_svc points after SVC
     print_exception_infos(
         frame,
         "Supervisor Call (SVC)",
         svc_return_addr,
         false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0
     );
-
     uart_putc(4);  // End-of-transmission
-    while(true) {} // Halt
+    while(true) {}
 }
 
 void irq_c(exc_frame_t *frame) {
-
     uint32_t lr;
     asm volatile("mov %0, lr" : "=r"(lr));
-
     uint32_t source = lr - 4;
 
     if (gpu_interrupt->IRQPending2 & UART_IRQ_BIT) {
@@ -69,85 +63,59 @@ void irq_c(exc_frame_t *frame) {
 
     handle_exception(frame, "IRQ", false, false,
                      0, 0, 0, 0,
-                     source,     // <-- correct
-                     0,0,0,0);
+                     source, 0, 0, 0, 0);
 }
 
-
-
 void fiq_c(exc_frame_t *frame) {
-
     uint32_t lr;
     asm volatile("mov %0, lr" : "=r"(lr));
-
     uint32_t source = lr - 4;
 
     handle_exception(frame, "FIQ", false, false,
-                     0,0,0,0,
-                     source,
-                     0,0,0,0);
+                     0, 0, 0, 0,
+                     source, 0, 0, 0, 0);
 
     uart_putc(4);
     while(true) {}
 }
 
-
-
-
 void undefined_instruction_c(exc_frame_t *frame) {
-    uint32_t lr;
+    uint32_t lr, spsr_und;
     asm volatile("mov %0, lr" : "=r"(lr));
-
-    uint32_t origin = lr - 4;
-
-    uint32_t spsr_und;
     asm volatile("mrs %0, SPSR" : "=r"(spsr_und));
+    uint32_t origin = lr - 4;
 
     print_exception_infos(frame,
                           "Undefined Instruction",
                           origin,
                           false, false,
-                          0, 0, 0, 0,       // no abort/prefetch values
-                          0,                // cpsr
-                          0,                // irq_spsr
-                          0,                // abort_spsr
-                          spsr_und,         // undefined_spsr
-                          0);               // supervisor_spsr
+                          0, 0, 0, 0,
+                          0, 0, 0, spsr_und, 0);
 
     uart_putc(4);
-    while (1) {}
+    while(1) {}
 }
 
-
-
-
 void prefetch_abort_c(exc_frame_t *frame) {
-
     uint32_t lr;
     asm volatile("mov %0, lr" : "=r"(lr));
-
     uint32_t source = lr - 4;
 
     unsigned int ifsr = read_ifsr();
     unsigned int ifar = read_ifar();
 
     handle_exception(frame, "Prefetch Abort", false, true,
-                     0,0, ifsr, ifar,
-                     source,
-                     0,0,0,0);
+                     0, 0, ifsr, ifar,
+                     source, 0, 0, 0, 0);
 
     uart_putc(4);
     while(true) {}
 }
 
-
-
 void data_abort_c(exc_frame_t *frame) {
-
     uint32_t lr;
     asm volatile("mov %0, lr" : "=r"(lr));
-
-    uint32_t source = lr - 8;
+    uint32_t source = lr - 8; // LR points after the faulting instruction
 
     unsigned int dfsr = read_dfsr();
     unsigned int dfar = read_dfar();
@@ -155,24 +123,20 @@ void data_abort_c(exc_frame_t *frame) {
     handle_exception(frame, "Data Abort",
                      true, false,
                      dfsr, dfar, 0, 0,
-                     source,
-                     0,0,0,0);
+                     source, 0, 0, 0, 0);
 
     uart_putc(4);
     while(true) {}
 }
 
-
 void not_used_c(exc_frame_t *frame) {
     uint32_t lr;
     asm volatile("mov %0, lr" : "=r"(lr));
-
     uint32_t source = lr - 4;
 
     handle_exception(frame, "Not Used", false, false,
-                     0,0,0,0,
-                     source,
-                     0,0,0,0);
+                     0, 0, 0, 0,
+                     source, 0, 0, 0, 0);
 
     uart_putc(4);
     while(true) {}
