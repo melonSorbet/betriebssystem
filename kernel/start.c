@@ -41,8 +41,8 @@ void test_kprintf(void)
 	kprintf("=== kprintf Test End ===\n");
 }
 void do_data_abort(void) {
-    volatile int *ptr = (int*)0;
-    *ptr = 42; // erzwingt Data Abort
+    volatile int *ptr = (int*)0xFFFFFFFF;
+    *ptr = 42; // always aborts on RPi1
 }
 void do_prefetch_abort(void) {
     void (*bad_func)(void) = (void (*)(void))0xDEADBEEF;
