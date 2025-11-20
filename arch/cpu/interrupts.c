@@ -93,20 +93,31 @@ void fiq_c(exc_frame_t *frame) {
 
 
 
+
 void undefined_instruction_c(exc_frame_t *frame) {
     uint32_t lr;
     asm volatile("mov %0, lr" : "=r"(lr));
 
-    uint32_t source = lr;
+    uint32_t origin = lr - 4;
 
-    handle_exception(frame, "Undefined Instruction", false, false,
-                     source, 0, 0, 0,
-                     0,     // <-- pass correct PC
-                     0,0,0,0);
+    uint32_t spsr_und;
+    asm volatile("mrs %0, SPSR" : "=r"(spsr_und));
+
+    print_exception_infos(frame,
+                          "Undefined Instruction",
+                          origin,
+                          false, false,
+                          0, 0, 0, 0,       // no abort/prefetch values
+                          0,                // cpsr
+                          0,                // irq_spsr
+                          0,                // abort_spsr
+                          spsr_und,         // undefined_spsr
+                          0);               // supervisor_spsr
 
     uart_putc(4);
-    while(true) {}
+    while (1) {}
 }
+
 
 
 
