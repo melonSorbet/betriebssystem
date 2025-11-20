@@ -41,21 +41,29 @@ static void handle_exception(
 #define UART_IRQ_BIT (1 << 25)
 
 void software_interrupt_c(exc_frame_t* frame) {
-    unsigned int svc_return_addr = frame->lr - 4; // LR_svc points after SVC
+    unsigned int svc_return_addr = frame->lr - 4; // LR in frame already points after SVC
+    uint32_t spsr_svc = frame->spsr;
+
     print_exception_infos(
         frame,
         "Supervisor Call (SVC)",
         svc_return_addr,
-        false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        false, false,
+        0, 0, 0, 0,
+        0,      // CPSR
+        0,      // IRQ SPSR
+        0,      // Abort SPSR
+        0,      // Undefined SPSR
+        spsr_svc
     );
-    uart_putc(4);  // End-of-transmission
-    while(true) {}
+
+    uart_putc(4);
+    while(1) {}
 }
 
 void irq_c(exc_frame_t *frame) {
-    uint32_t lr;
-    asm volatile("mov %0, lr" : "=r"(lr));
-    uint32_t source = lr - 4;
+    uint32_t spsr_irq = frame->spsr;  // read SPSR saved by stub
+    unsigned int source_addr = frame->lr - 4; // LR in frame
 
     if (gpu_interrupt->IRQPending2 & UART_IRQ_BIT) {
         uart_irq_handler();
@@ -63,27 +71,28 @@ void irq_c(exc_frame_t *frame) {
 
     handle_exception(frame, "IRQ", false, false,
                      0, 0, 0, 0,
-                     source, 0, 0, 0, 0);
+                     source_addr,
+                     spsr_irq, 0, 0, 0);
 }
 
 void fiq_c(exc_frame_t *frame) {
-    uint32_t lr;
-    asm volatile("mov %0, lr" : "=r"(lr));
-    uint32_t source = lr - 4;
+    uint32_t spsr_fiq = frame->spsr;
+    unsigned int source_addr = frame->lr - 4;
 
     handle_exception(frame, "FIQ", false, false,
                      0, 0, 0, 0,
-                     source, 0, 0, 0, 0);
+                     source_addr,
+                     0, 0, spsr_fiq, 0);
 
     uart_putc(4);
-    while(true) {}
+    while(1) {}
 }
 
+
+
 void undefined_instruction_c(exc_frame_t *frame) {
-    uint32_t lr, spsr_und;
-    asm volatile("mov %0, lr" : "=r"(lr));
-    asm volatile("mrs %0, SPSR" : "=r"(spsr_und));
-    uint32_t origin = lr - 4;
+    uint32_t spsr_und = frame->spsr;
+    unsigned int origin = frame->lr - 4;
 
     print_exception_infos(frame,
                           "Undefined Instruction",
@@ -98,72 +107,69 @@ void undefined_instruction_c(exc_frame_t *frame) {
 
 
 
+
+
 void prefetch_abort_c(exc_frame_t *frame) {
-    unsigned int ifsr = read_ifsr();   // Instruction Fault Status Register
-    unsigned int ifar = read_ifar();   // Instruction Fault Address Register
+    unsigned int ifsr = read_ifsr();
+    unsigned int ifar = read_ifar();
 
-    // No need to fudge LR here; we report IFAR as exception source
-    uint32_t cpsr;
-    asm volatile("mrs %0, cpsr" : "=r"(cpsr));
-
-    uint32_t spsr_abt = frame->spsr;
+    uint32_t spsr_abt = frame->spsr; // correct now
 
     print_exception_infos(frame,
                           "Prefetch Abort",
-                          ifar,           // Use IFAR, not LR
+                          ifar,
                           false, true,
                           0, 0,
                           ifsr, ifar,
-                          cpsr,
-                          0, 0, spsr_abt, 0);
+                          0,     // CPSR optional
+                          0,     // IRQ SPSR
+                          0,     // Abort SPSR
+                          spsr_abt, // Undefined SPSR slot used
+                          0);
 
-    uart_putc(4);  // EOT
-    while (1) {}   // Halt CPU
+    uart_putc(4);
+    while(1) {}
 }
 
 
 
 void data_abort_c(exc_frame_t *frame) {
-    // Get the instruction that caused the fault
-    uint32_t lr_abt;
-    asm volatile("mov %0, lr" : "=r"(lr_abt));  // LR in abort mode
-    uint32_t source_addr = lr_abt - 8;          // Data Abort: LR points *after* faulting instr
+    unsigned int dfsr = read_dfsr();
+    unsigned int dfar = read_dfar();
 
-    // Read fault registers
-    unsigned int dfsr = read_dfsr();            // Data Fault Status Register
-    unsigned int dfar = read_dfar();            // Data Fault Address Register
-
-    // Read abort mode SPSR
-    uint32_t spsr_abt;
-    asm volatile("mrs %0, SPSR" : "=r"(spsr_abt));
+    uint32_t spsr_abt = frame->spsr;
 
     print_exception_infos(frame,
                           "Data Abort",
-                          source_addr,   // <-- Correct instruction address
+                          frame->lr - 8,
                           true, false,
-                          dfsr, dfar,    // DFSR / DFAR
-                          0, 0,         // IFSR / IFAR
-                          0,            // CPSR
-                          0,            // IRQ SPSR
-                          spsr_abt,     // Abort SPSR
-                          0,            // Undefined SPSR
-                          0);           // Supervisor SPSR
+                          dfsr, dfar,
+                          0, 0,
+                          0,
+                          0,       // IRQ SPSR
+                          spsr_abt,// Abort SPSR
+                          0,
+                          0);
 
     uart_putc(4);
-    while(true) {}
+    while(1) {}
 }
+
 
 void not_used_c(exc_frame_t *frame) {
-    uint32_t lr;
-    asm volatile("mov %0, lr" : "=r"(lr));
-    uint32_t source = lr - 4;
+    unsigned int source_addr = frame->lr - 4; // use frame LR
+    uint32_t spsr_unused = frame->spsr;      // use saved SPSR
 
-    handle_exception(frame, "Not Used", false, false,
+    handle_exception(frame,
+                     "Not Used",
+                     false, false,
                      0, 0, 0, 0,
-                     source, 0, 0, 0, 0);
+                     source_addr,
+                     0,       // irq_spsr
+                     0,       // abort_spsr
+                     spsr_unused, // undefined_spsr (or any slot, since it's not really used)
+                     0);
 
     uart_putc(4);
     while(true) {}
 }
-
-
