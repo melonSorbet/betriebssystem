@@ -96,20 +96,26 @@ void undefined_instruction_c(exc_frame_t *frame) {
     while(1) {}
 }
 
-void prefetch_abort_c(exc_frame_t *frame) {
-    uint32_t lr;
-    asm volatile("mov %0, lr" : "=r"(lr));
-    uint32_t source = lr - 4;
 
+
+void prefetch_abort_c(exc_frame_t *frame) {
+    uint32_t source = frame->lr - 4;
     unsigned int ifsr = read_ifsr();
     unsigned int ifar = read_ifar();
+    uint32_t spsr_abt = frame->spsr;
+    uint32_t cpsr;
+    asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
-    handle_exception(frame, "Prefetch Abort", false, true,
-                     0, 0, ifsr, ifar,
-                     source, 0, 0, 0, 0);
-
+    print_exception_infos(frame,
+                          "Prefetch Abort",
+                          source,
+                          false, true,
+                          0, 0,
+                          ifsr, ifar,
+                          cpsr,
+                          0, 0, spsr_abt, 0);
     uart_putc(4);
-    while(true) {}
+    while (1) {}
 }
 
 

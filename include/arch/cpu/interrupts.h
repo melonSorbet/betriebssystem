@@ -17,7 +17,8 @@ typedef struct {
     uint32_t r10;
     uint32_t r11;
     uint32_t r12;
-    uint32_t lr;
+    uint32_t lr;    // pushed after r12
+    uint32_t spsr;  // copy of SPSR pushed last
 } exc_frame_t;
 
 /* Exception C handlers */
