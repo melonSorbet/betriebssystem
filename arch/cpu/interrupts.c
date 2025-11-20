@@ -41,10 +41,21 @@ static void handle_exception(
 #define UART_IRQ_BIT (1 << 25)
 
 void software_interrupt_c(exc_frame_t* frame) {
-    print_exception_infos(frame, "Supervisor Call (SVC)", frame->lr,
-                          false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    uart_putc(4);  // End-of-transmission
-    while(true) {} // Halt
+    unsigned int spsr_svc;
+    asm volatile("mrs %0, SPSR" : "=r"(spsr_svc)); // Read SPSR for SVC mode
+
+    handle_exception(frame,
+                     "Supervisor Call (SVC)",
+                     false, false,
+                     0, 0, 0, 0,  // dfsr/dfar, ifsr/ifar
+                     0,           // CPSR (can read with mrs rX, CPSR)
+                     0,           // irq_spsr
+                     0,           // abort_spsr
+                     0,           // undefined_spsr
+                     spsr_svc);   // supervisor_spsr
+
+    uart_putc(4); // End-of-transmission
+    while(true) {}
 }
 
 void irq_c(exc_frame_t *frame) {
@@ -86,14 +97,23 @@ void data_abort_c(exc_frame_t *frame) {
     unsigned int dfsr = read_dfsr();
     unsigned int dfar = read_dfar();
 
-    print_exception_infos(frame, "Data Abort", frame->lr,
-                          true, false, dfsr, dfar, 0, 0, 0, 0, 0, 0, 0);
+    unsigned int spsr_abt;
+    asm volatile("mrs %0, SPSR" : "=r"(spsr_abt));
 
-    // End-of-transmission
+    handle_exception(frame,
+                     "Data Abort",
+                     true, false,
+                     dfsr, dfar, 0, 0,  // DFSR/DFAR, IFSR/IFAR
+                     0,                 // CPSR
+                     0,                 // irq_spsr
+                     spsr_abt,          // abort_spsr
+                     0,                 // undefined_spsr
+                     0);                // supervisor_spsr
+
     uart_putc(4);
-    // Halt
-    while (true) {}
+    while(true) {}
 }
+
 
 void not_used_c(exc_frame_t *frame) {
     handle_exception(frame, "Not Used", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
