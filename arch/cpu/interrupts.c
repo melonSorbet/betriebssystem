@@ -97,11 +97,11 @@ void undefined_instruction_c(exc_frame_t *frame) {
     uint32_t lr;
     asm volatile("mov %0, lr" : "=r"(lr));
 
-    uint32_t source = lr - 4;
+    uint32_t source = lr;
 
     handle_exception(frame, "Undefined Instruction", false, false,
-                     0, 0, 0, 0,
-                     source,     // <-- pass correct PC
+                     source, 0, 0, 0,
+                     0,     // <-- pass correct PC
                      0,0,0,0);
 
     uart_putc(4);
