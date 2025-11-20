@@ -40,41 +40,35 @@ void test_kprintf(void)
 
 	kprintf("=== kprintf Test End ===\n");
 }
-void do_data_abort(void)
-{
-	volatile int *ptr = (int *)0xFFFFFFFF;
-	*ptr		  = 42; // always aborts on RPi1
+void do_data_abort(void) {
+    volatile int *ptr = (int*)0xFFFFFFFF;
+    *ptr = 42; // always aborts on RPi1
 }
-void do_prefetch_abort(void)
-{
-	void (*bad_func)(void) = (void (*)(void))0xDEADBEEF;
-	bad_func(); // Prefetch Abort
+void do_prefetch_abort(void) {
+    void (*bad_func)(void) = (void (*)(void))0xDEADBEEF;
+    bad_func(); // Prefetch Abort
 }
 
-void do_supervisor_call(void)
-{
-	asm volatile("svc 0");
+void do_supervisor_call(void) {
+    asm volatile("svc 0");
 }
 
-void do_undefined_inst(void)
-{
-	asm volatile(".word 0xE7F000F0"); // undefined instruction
+void do_undefined_inst(void) {
+    asm volatile(".word 0xE7F000F0"); // undefined instruction
 }
 
-void register_checker(void)
-{
-	// Liest und zeigt Registerinhalte
+void register_checker(void) {
+    // Liest und zeigt Registerinhalte
 }
 
-void subprogram [[noreturn]] (void)
-{
-	while (true) {
+
+void subprogram [[noreturn]] (void) {
+	while(true) {
 		char c = uart_getc();
-		for (unsigned int n = 0; n < PRINT_COUNT; n++) {
+		for(unsigned int n = 0; n < PRINT_COUNT; n++) {
 			uart_putc(c);
 			volatile unsigned int i = 0;
-			for (; i < BUSY_WAIT_COUNTER; i++) {
-			}
+			for(; i < BUSY_WAIT_COUNTER; i++) {}
 		}
 	}
 }
@@ -84,33 +78,34 @@ void start_kernel [[noreturn]] (void)
 	test_kprintf();
 	kprintf("=== Betriebssystem gestartet ===\n");
 	test_kernel();
-	while (true) {
+	while(true) {
 		char c = uart_getc();
-		switch (c) {
-		case 'd':
-			kprintf("debug mode activated");
-			irq_debug = !irq_debug;
-			break;
-		case 'a':
-			do_data_abort();
-			break;
-		case 'p':
-			do_prefetch_abort();
-			break;
-		case 's':
-			do_supervisor_call();
-			break;
-		case 'u':
-			do_undefined_inst();
-			break;
-		case 'c':
-			register_checker();
-			break;
-		case 'e':
-			subprogram();
-		default:
-			kprintf("Unknown input: %c\n", c);
-			break;
+		switch(c) {
+			case 'd':
+				kprintf("debug mode activated");
+				irq_debug = !irq_debug;
+				break;
+			case 'a':
+				do_data_abort();
+				break;
+			case 'p':
+				do_prefetch_abort();
+				break;
+			case 's':
+				do_supervisor_call();
+				break;
+			case 'u':
+				do_undefined_inst();
+				break;
+			case 'c':
+				register_checker();
+				break;
+			case 'e':
+				subprogram();
+			default:
+				kprintf("Unknown input: %c\n", c);
+				break;
 		}
 	}
 }
+
