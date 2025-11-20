@@ -112,18 +112,32 @@ void prefetch_abort_c(exc_frame_t *frame) {
     while(true) {}
 }
 
+
 void data_abort_c(exc_frame_t *frame) {
-    uint32_t lr;
-    asm volatile("mov %0, lr" : "=r"(lr));
-    uint32_t source = lr - 8; // LR points after the faulting instruction
+    // Get the instruction that caused the fault
+    uint32_t lr_abt;
+    asm volatile("mov %0, lr" : "=r"(lr_abt));  // LR in abort mode
+    uint32_t source_addr = lr_abt - 8;          // Data Abort: LR points *after* faulting instr
 
-    unsigned int dfsr = read_dfsr();
-    unsigned int dfar = read_dfar();
+    // Read fault registers
+    unsigned int dfsr = read_dfsr();            // Data Fault Status Register
+    unsigned int dfar = read_dfar();            // Data Fault Address Register
 
-    handle_exception(frame, "Data Abort",
-                     true, false,
-                     dfsr, dfar, 0, 0,
-                     source, 0, 0, 0, 0);
+    // Read abort mode SPSR
+    uint32_t spsr_abt;
+    asm volatile("mrs %0, SPSR" : "=r"(spsr_abt));
+
+    print_exception_infos(frame,
+                          "Data Abort",
+                          source_addr,   // <-- Correct instruction address
+                          true, false,
+                          dfsr, dfar,    // DFSR / DFAR
+                          0, 0,         // IFSR / IFAR
+                          0,            // CPSR
+                          0,            // IRQ SPSR
+                          spsr_abt,     // Abort SPSR
+                          0,            // Undefined SPSR
+                          0);           // Supervisor SPSR
 
     uart_putc(4);
     while(true) {}
