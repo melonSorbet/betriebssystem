@@ -96,21 +96,31 @@ void undefined_instruction_c(exc_frame_t *frame) {
     while(1) {}
 }
 
+
+
 void prefetch_abort_c(exc_frame_t *frame) {
-    uint32_t lr;
-    asm volatile("mov %0, lr" : "=r"(lr));
-    uint32_t source = lr - 4;
+    unsigned int ifsr = read_ifsr();   // Instruction Fault Status Register
+    unsigned int ifar = read_ifar();   // Instruction Fault Address Register
 
-    unsigned int ifsr = read_ifsr();
-    unsigned int ifar = read_ifar();
+    // No need to fudge LR here; we report IFAR as exception source
+    uint32_t cpsr;
+    asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
-    handle_exception(frame, "Prefetch Abort", false, true,
-                     0, 0, ifsr, ifar,
-                     source, 0, 0, 0, 0);
+    uint32_t spsr_abt = frame->spsr;
 
-    uart_putc(4);
-    while(true) {}
+    print_exception_infos(frame,
+                          "Prefetch Abort",
+                          ifar,           // Use IFAR, not LR
+                          false, true,
+                          0, 0,
+                          ifsr, ifar,
+                          cpsr,
+                          0, 0, spsr_abt, 0);
+
+    uart_putc(4);  // EOT
+    while (1) {}   // Halt CPU
 }
+
 
 
 void data_abort_c(exc_frame_t *frame) {
