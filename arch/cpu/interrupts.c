@@ -42,8 +42,17 @@ static void handle_exception(
 #define UART_IRQ_BIT (1 << 25)
 
 void software_interrupt_c(exc_frame_t* frame) {
-    print_exception_infos(frame, "Supervisor Call (SVC)", frame->lr,
-                          false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    // For SVC, LR_svc holds the return address
+    unsigned int svc_return_addr = frame->lr; // adjust if frame->lr is not the SVC LR
+    // sometimes: svc_return_addr = get_svc_lr_from_stack(frame);
+
+    print_exception_infos(
+        frame,
+        "Supervisor Call (SVC)",
+        svc_return_addr,
+        false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    );
+
     uart_putc(4);  // End-of-transmission
     while(true) {} // Halt
 }
@@ -92,14 +101,23 @@ void data_abort_c(exc_frame_t *frame) {
     unsigned int dfsr = read_dfsr();
     unsigned int dfar = read_dfar();
 
-    print_exception_infos(frame, "Data Abort", frame->lr,
-                          true, false, dfsr, dfar, 0, 0, 0, 0, 0, 0, 0);
+    unsigned int spsr_abt;
+    asm volatile("mrs %0, SPSR" : "=r"(spsr_abt));
 
-    // End-of-transmission
+    handle_exception(frame,
+                     "Data Abort",
+                     true, false,
+                     dfsr, dfar, 0, 0,  // DFSR/DFAR, IFSR/IFAR
+                     0,                 // CPSR
+                     0,                 // irq_spsr
+                     spsr_abt,          // abort_spsr
+                     0,                 // undefined_spsr
+                     0);                // supervisor_spsr
+
     uart_putc(4);
-    // Halt
-    while (true) {}
+    while(true) {}
 }
+
 
 void not_used_c(exc_frame_t *frame) {
     handle_exception(frame, "Not Used", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
