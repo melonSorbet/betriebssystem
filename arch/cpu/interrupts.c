@@ -41,21 +41,19 @@ static void handle_exception(
 #define UART_IRQ_BIT (1 << 25)
 
 void software_interrupt_c(exc_frame_t* frame) {
-    unsigned int spsr_svc;
-    asm volatile("mrs %0, SPSR" : "=r"(spsr_svc)); // Read SPSR for SVC mode
+    // For SVC, LR_svc holds the return address
+    unsigned int svc_return_addr = frame->lr; // adjust if frame->lr is not the SVC LR
+    // sometimes: svc_return_addr = get_svc_lr_from_stack(frame);
 
-    handle_exception(frame,
-                     "Supervisor Call (SVC)",
-                     false, false,
-                     0, 0, 0, 0,  // dfsr/dfar, ifsr/ifar
-                     0,           // CPSR (can read with mrs rX, CPSR)
-                     0,           // irq_spsr
-                     0,           // abort_spsr
-                     0,           // undefined_spsr
-                     spsr_svc);   // supervisor_spsr
+    print_exception_infos(
+        frame,
+        "Supervisor Call (SVC)",
+        svc_return_addr,
+        false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    );
 
-    uart_putc(4); // End-of-transmission
-    while(true) {}
+    uart_putc(4);  // End-of-transmission
+    while(true) {} // Halt
 }
 
 void irq_c(exc_frame_t *frame) {
