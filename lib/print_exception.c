@@ -40,7 +40,6 @@ void print_exception_infos(
 	kprintf("R2: 0x%08x  R7: 0x%08x  R12: 0x%08x\n", frame->r2, frame->r7, frame->r12);
 	kprintf("R3: 0x%08x  R8: 0x%08x\n", frame->r3, frame->r8);
 	kprintf("R4: 0x%08x  R9: 0x%08x\n", frame->r4, frame->r9);
-	kprintf("LR: 0x%08x\n", frame->lr);
 
 	struct mode_regs mode_regs = read_mode_specific_registers();
 
