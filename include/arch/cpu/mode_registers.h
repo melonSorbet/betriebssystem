@@ -18,55 +18,24 @@ struct mode_regs {
     uint32_t supervisor_lr;
 };
 
+
 static inline struct mode_regs read_mode_specific_registers(void) {
-    struct mode_regs regs;
+    struct mode_regs regs = {0};
 
-    // User/System mode
-    asm volatile(
-        "mrs %0, cpsr\n\t"
-        "mov %1, sp\n\t"
-        "mov %2, lr\n\t"
-        : "=r"(regs.user_sp), "=r"(regs.user_sp), "=r"(regs.user_lr)
-    );
 
-    // IRQ mode
+    unsigned int sp, lr;
     asm volatile(
-        "cps #0x12\n\t"   // Switch to IRQ
         "mov %0, sp\n\t"
         "mov %1, lr\n\t"
-        "cps #0x13\n\t"   // Switch back to SVC
-        : "=r"(regs.irq_sp), "=r"(regs.irq_lr)
+        : "=r"(sp), "=r"(lr)
     );
 
-    // Abort mode
-    asm volatile(
-        "cps #0x17\n\t"
-        "mov %0, sp\n\t"
-        "mov %1, lr\n\t"
-        "cps #0x13\n\t"
-        : "=r"(regs.abort_sp), "=r"(regs.abort_lr)
-    );
 
-    // Undefined mode
-    asm volatile(
-        "cps #0x1B\n\t"
-        "mov %0, sp\n\t"
-        "mov %1, lr\n\t"
-        "cps #0x13\n\t"
-        : "=r"(regs.undefined_sp), "=r"(regs.undefined_lr)
-    );
-
-    // Supervisor mode
-    asm volatile(
-        "cps #0x13\n\t"
-        "mov %0, sp\n\t"
-        "mov %1, lr\n\t"
-        : "=r"(regs.supervisor_sp), "=r"(regs.supervisor_lr)
-    );
+    regs.supervisor_sp = sp;
+    regs.supervisor_lr = lr;
 
     return regs;
 }
-
 
 #include <stdint.h>
 
