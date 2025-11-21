@@ -23,20 +23,20 @@ static void handle_exception(
     unsigned int supervisor_spsr
 ) {
     print_exception_infos(
-        frame,
-        name,
-        0, // exception_source_addr (optional, can be frame->lr)
-        is_data_abort,
-        is_prefetch_abort,
-        dfsr,
-        dfar,
-        ifsr,
-        ifar,
-        cpsr,
-        irq_spsr,
-        abort_spsr,
-        undefined_spsr,
-        supervisor_spsr
+    frame,
+    name,
+    frame->lr,  // origin address of the exception
+    is_data_abort,
+    is_prefetch_abort,
+    dfsr,
+    dfar,
+    ifsr,
+    ifar,
+    cpsr,
+    irq_spsr,
+    abort_spsr,
+    undefined_spsr,
+    supervisor_spsr
     );
 }
 #define UART_IRQ_BIT (1 << 25)
