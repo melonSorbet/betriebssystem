@@ -58,17 +58,23 @@ void software_interrupt_c(exc_frame_t* frame) {
 }
 
 void irq_c(exc_frame_t *frame) {
-	if (gpu_interrupt->IRQPending2 & UART_IRQ_BIT) {
+	uint32_t pending1 = gpu_interrupt->IRQPending1;
+	uint32_t pending2 = gpu_interrupt->IRQPending2;
+
+
+	if (pending2 & UART_IRQ_BIT) {
 		uart_irq_handler();
 	}
 
-	(void)systimer_handle_irq();
+
+	if (pending1 & SYSTIMER_IRQ_BIT) {
+		systimer_handle_irq();
+	}
 
 	if (irq_debug) {
 		handle_exception(frame, "IRQ", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	}
 }
-
 void fiq_c(exc_frame_t *frame) {
 
     handle_exception(frame, "FIQ", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);

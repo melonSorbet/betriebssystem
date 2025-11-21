@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+void uart_init(void);
 void uart_loopback(void);
 char uart_getc(void);
 void uart_putc(char input);

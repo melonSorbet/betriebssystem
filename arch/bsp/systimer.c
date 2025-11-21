@@ -3,6 +3,7 @@
 #include <lib/kprintf.h>
 #include <config.h>
 #include <arch/bsp/uart.h>
+#include <arch/bsp/systimer.h>
 
 #define SYSTIMER_BUS_BASE 0x7E003000
 #define BUS_BASE 0x7E000000
@@ -21,7 +22,7 @@ typedef struct {
 	volatile uint32_t C3;
 } SystemTimer;
 #define SYSTIMER_CS_M1   (1u << 1)
-#define SYSTIMER_IRQ_BIT (1u << 1)
+
 
 volatile SystemTimer *const systimer = (volatile SystemTimer *) SYSTIMER_BASE;
 
@@ -39,6 +40,7 @@ void systimer_init() {
 bool systimer_handle_irq(void) {
 
     if ((systimer->CS & SYSTIMER_CS_M1) == 0) {
+    	return false;
 
     }
 

@@ -76,8 +76,9 @@ void subprogram [[noreturn]] (void) {
 void start_kernel [[noreturn]] (void);
 void start_kernel [[noreturn]] (void)
 {
-	test_kprintf();
+	uart_init();
 	systimer_init();
+	test_kprintf();
 	kprintf("=== Betriebssystem gestartet ===\n");
 	test_kernel();
 	while(true) {
