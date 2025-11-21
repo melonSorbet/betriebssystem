@@ -83,6 +83,10 @@ void start_kernel [[noreturn]] (void)
 	test_kernel();
 	while(true) {
 		char c = uart_getc();
+		if (c < 32 || c > 126) {
+			continue;
+		}
+
 		switch(c) {
 			case 'd':
 				kprintf("debug mode activated");
