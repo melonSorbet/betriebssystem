@@ -40,22 +40,31 @@ static void handle_exception(
     );
 }
 #define UART_IRQ_BIT (1 << 25)
-
 void software_interrupt_c(exc_frame_t* frame) {
-    // For SVC, LR_svc holds the return address
-    unsigned int svc_return_addr = frame->lr; // adjust if frame->lr is not the SVC LR
-    // sometimes: svc_return_addr = get_svc_lr_from_stack(frame);
+	unsigned int cpsr, spsr_svc;
+	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
+	asm volatile("mrs %0, spsr" : "=r"(spsr_svc));
 
-    print_exception_infos(
-        frame,
-        "Supervisor Call (SVC)",
-        svc_return_addr,
-        false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    );
+	unsigned int svc_return_addr = frame->lr;
 
-    uart_putc(4);  // End-of-transmission
-    while(true) {} // Halt
+	print_exception_infos(
+	    frame,
+	    "Supervisor Call",
+	    svc_return_addr,
+	    false, false,
+	    0, 0,
+	    0, 0,
+	    cpsr,
+	    0,
+	    0,
+	    0,
+	    spsr_svc
+	);
+
+	uart_putc(4);
+	while (true) {}
 }
+
 
 void irq_c(exc_frame_t *frame) {
 	uint32_t pending1 = gpu_interrupt->IRQPending1;
