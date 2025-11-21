@@ -25,7 +25,7 @@ static void handle_exception(
     print_exception_infos(
     frame,
     name,
-    frame->lr,  // origin address of the exception
+    frame->lr,
     is_data_abort,
     is_prefetch_abort,
     dfsr,
