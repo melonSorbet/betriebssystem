@@ -42,9 +42,10 @@ void test_kprintf(void)
 	kprintf("=== kprintf Test End ===\n");
 }
 void do_data_abort(void) {
-    volatile int *ptr = (int*)0;
-    *ptr = 42; // erzwingt Data Abort
+	volatile unsigned int *ptr = (volatile unsigned int *)0x1;
+	*ptr = 0xDEADBEEF;
 }
+
 void do_prefetch_abort(void) {
     void (*bad_func)(void) = (void (*)(void))0xDEADBEEF;
     bad_func(); // Prefetch Abort
