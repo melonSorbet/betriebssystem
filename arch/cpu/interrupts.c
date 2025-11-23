@@ -41,6 +41,7 @@ static void handle_exception(
 }
 #define UART_IRQ_BIT (1 << 25)
 void software_interrupt_c(exc_frame_t* frame) {
+
 	unsigned int cpsr, spsr_svc;
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 	asm volatile("mrs %0, spsr" : "=r"(spsr_svc));
@@ -67,9 +68,9 @@ void software_interrupt_c(exc_frame_t* frame) {
 
 
 void irq_c(exc_frame_t *frame) {
+
 	uint32_t pending1 = gpu_interrupt->IRQPending1;
 	uint32_t pending2 = gpu_interrupt->IRQPending2;
-
 
 	if (pending2 & UART_IRQ_BIT) {
 		uart_irq_handler();
@@ -85,60 +86,100 @@ void irq_c(exc_frame_t *frame) {
 	}
 }
 void fiq_c(exc_frame_t *frame) {
+    uint32_t spsr_fiq = frame->spsr;
+    unsigned int source_addr = frame->lr - 4;
 
-    handle_exception(frame, "FIQ", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    // End-of-transmission
+    handle_exception(frame, "FIQ", false, false,
+                     0, 0, 0, 0,
+                     source_addr,
+                     0, 0, spsr_fiq, 0);
+
     uart_putc(4);
-    // Halt
-    while (true) {}
+    while(1) {}
 }
+
+
 
 void undefined_instruction_c(exc_frame_t *frame) {
-    handle_exception(frame, "Undefined Instruction", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    // End-of-transmission
+    uint32_t spsr_und = frame->spsr;
+    unsigned int origin = frame->lr - 4;
+
+    print_exception_infos(frame,
+                          "Undefined Instruction",
+                          origin,
+                          false, false,
+                          0, 0, 0, 0,
+                          0, 0, 0, spsr_und, 0);
+
     uart_putc(4);
-    // Halt
-    while (true) {}
+    while(1) {}
 }
+
+
+
+
 
 void prefetch_abort_c(exc_frame_t *frame) {
     unsigned int ifsr = read_ifsr();
     unsigned int ifar = read_ifar();
-    handle_exception(frame, "Prefetch Abort", false, true, 0, 0, ifsr, ifar, 0, 0, 0, 0, 0);
 
-    // End-of-transmission
+    uint32_t spsr_abt = frame->spsr; // correct now
+
+    print_exception_infos(frame,
+                          "Prefetch Abort",
+                          ifar,
+                          false, true,
+                          0, 0,
+                          ifsr, ifar,
+                          0,     // CPSR optional
+                          0,     // IRQ SPSR
+                          0,     // Abort SPSR
+                          spsr_abt, // Undefined SPSR slot used
+                          0);
+
     uart_putc(4);
-    // Halt
-    while (true) {}
+    while(1) {}
 }
+
+
 
 void data_abort_c(exc_frame_t *frame) {
     unsigned int dfsr = read_dfsr();
     unsigned int dfar = read_dfar();
 
-    unsigned int spsr_abt;
-    asm volatile("mrs %0, SPSR" : "=r"(spsr_abt));
+    uint32_t spsr_abt = frame->spsr;
 
-    handle_exception(frame,
-                     "Data Abort",
-                     true, false,
-                     dfsr, dfar, 0, 0,  // DFSR/DFAR, IFSR/IFAR
-                     0,                 // CPSR
-                     0,                 // irq_spsr
-                     spsr_abt,          // abort_spsr
-                     0,                 // undefined_spsr
-                     0);                // supervisor_spsr
+    print_exception_infos(frame,
+                          "Data Abort",
+                          frame->lr - 8,
+                          true, false,
+                          dfsr, dfar,
+                          0, 0,
+                          0,
+                          0,       // IRQ SPSR
+                          spsr_abt,// Abort SPSR
+                          0,
+                          0);
 
     uart_putc(4);
-    while(true) {}
+    while(1) {}
 }
 
 
 void not_used_c(exc_frame_t *frame) {
-    handle_exception(frame, "Not Used", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    // End-of-transmission
-    uart_putc(4);
-    // Halt
-    while (true) {}
-}
+    unsigned int source_addr = frame->lr - 4; // use frame LR
+    uint32_t spsr_unused = frame->spsr;      // use saved SPSR
 
+    handle_exception(frame,
+                     "Not Used",
+                     false, false,
+                     0, 0, 0, 0,
+                     source_addr,
+                     0,       // irq_spsr
+                     0,       // abort_spsr
+                     spsr_unused, // undefined_spsr (or any slot, since it's not really used)
+                     0);
+
+    uart_putc(4);
+    while(true) {}
+}

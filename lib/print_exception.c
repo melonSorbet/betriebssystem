@@ -34,6 +34,7 @@ void print_exception_infos(
 		kprintf("Instruction Fault Adress Register: 0x%08x\n", instruction_fault_address_register);
 	}
 	kprintf("\n>> Registerschnappschuss <<\n");
+
 	kprintf("R0: 0x%08x R5: 0x%08x R10: 0x%08x\n", frame->r0, frame->r5, frame->r10);
 	kprintf("R1: 0x%08x R6: 0x%08x R11: 0x%08x\n", frame->r1, frame->r6, frame->r11);
 	kprintf("R2: 0x%08x R7: 0x%08x R12: 0x%08x\n", frame->r2, frame->r7, frame->r12);

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+
+
 typedef struct {
     uint32_t r0;
     uint32_t r1;
@@ -18,7 +20,11 @@ typedef struct {
     uint32_t r11;
     uint32_t r12;
     uint32_t lr;
+    uint32_t spsr;   // <-- save SPSR here
 } exc_frame_t;
+
+
+
 
 /* Exception C handlers */
 void software_interrupt_c(exc_frame_t *frame);
