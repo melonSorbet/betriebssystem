@@ -3,7 +3,7 @@
   Generic exception handler macro for BCM2836 (ARMv7-A)
   Saves r0-r12, LR, SPSR safely and calls C handler
 ========================================================*/
-.macro EXC_HANDLER name, lr_adjust=4
+.macro EXC_HANDLER name, lr_adjust=0
 \name:
     sub lr, lr, #\lr_adjust       @ Adjust LR (4 for most, 8 for Data Abort)
     mrs r0, spsr                  @ Save SPSR first
