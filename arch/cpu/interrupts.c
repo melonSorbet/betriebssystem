@@ -5,6 +5,7 @@
 
 #include <arch/cpu/mode_registers.h>
 #include <arch/bsp/uart.h>
+#include <arch/bsp/systimer.h>
 // Helper for common handling
 static void handle_exception(
     exc_frame_t* frame,
@@ -22,59 +23,68 @@ static void handle_exception(
     unsigned int supervisor_spsr
 ) {
     print_exception_infos(
-        frame,
-        name,
-        0, // exception_source_addr (optional, can be frame->lr)
-        is_data_abort,
-        is_prefetch_abort,
-        dfsr,
-        dfar,
-        ifsr,
-        ifar,
-        cpsr,
-        irq_spsr,
-        abort_spsr,
-        undefined_spsr,
-        supervisor_spsr
+    frame,
+    name,
+    frame->lr,
+    is_data_abort,
+    is_prefetch_abort,
+    dfsr,
+    dfar,
+    ifsr,
+    ifar,
+    cpsr,
+    irq_spsr,
+    abort_spsr,
+    undefined_spsr,
+    supervisor_spsr
     );
 }
 #define UART_IRQ_BIT (1 << 25)
-
 void software_interrupt_c(exc_frame_t* frame) {
-    unsigned int svc_return_addr = frame->lr - 4; // LR in frame already points after SVC
-    uint32_t spsr_svc = frame->spsr;
 
-    print_exception_infos(
-        frame,
-        "Supervisor Call (SVC)",
-        svc_return_addr,
-        false, false,
-        0, 0, 0, 0,
-        0,      // CPSR
-        0,      // IRQ SPSR
-        0,      // Abort SPSR
-        0,      // Undefined SPSR
-        spsr_svc
-    );
+	unsigned int cpsr, spsr_svc;
+	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
+	asm volatile("mrs %0, spsr" : "=r"(spsr_svc));
 
-    uart_putc(4);
-    while(1) {}
+	unsigned int svc_return_addr = frame->lr;
+
+	print_exception_infos(
+	    frame,
+	    "Supervisor Call",
+	    svc_return_addr,
+	    false, false,
+	    0, 0,
+	    0, 0,
+	    cpsr,
+	    0,
+	    0,
+	    0,
+	    spsr_svc
+	);
+
+	uart_putc(4);
+	while (true) {}
 }
+
 
 void irq_c(exc_frame_t *frame) {
-    uint32_t spsr_irq = frame->spsr;  // read SPSR saved by stub
-    unsigned int source_addr = frame->lr - 4; // LR in frame
 
-    if (gpu_interrupt->IRQPending2 & UART_IRQ_BIT) {
-        uart_irq_handler();
-    }
+	uint32_t pending1 = gpu_interrupt->IRQPending1;
+	uint32_t pending2 = gpu_interrupt->IRQPending2;
 
-    handle_exception(frame, "IRQ", false, false,
-                     0, 0, 0, 0,
-                     source_addr,
-                     spsr_irq, 0, 0, 0);
+	if (pending2 & UART_IRQ_BIT) {
+		uart_irq_handler();
+	}
+
+
+	if (pending1 & SYSTIMER_IRQ_BIT) {
+		systimer_handle_irq();
+	}
+
+	if (irq_debug) {
+		handle_exception(frame, "IRQ", false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	}
 }
-
 void fiq_c(exc_frame_t *frame) {
     uint32_t spsr_fiq = frame->spsr;
     unsigned int source_addr = frame->lr - 4;

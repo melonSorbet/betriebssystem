@@ -6,6 +6,7 @@
 
 #include "arch/bsp/uart.h"
 #include <stdint.h>
+#include <arch/bsp/systimer.h>
 
 void test_kprintf(void)
 {
@@ -41,9 +42,10 @@ void test_kprintf(void)
 	kprintf("=== kprintf Test End ===\n");
 }
 void do_data_abort(void) {
-    volatile int *ptr = (int*)0xFFFFFFFF;
-    *ptr = 42; // always aborts on RPi1
+	volatile unsigned int *ptr = (volatile unsigned int *)0x1;
+	*ptr = 0xDEADBEEF;
 }
+
 void do_prefetch_abort(void) {
     void (*bad_func)(void) = (void (*)(void))0xDEADBEEF;
     bad_func(); // Prefetch Abort
@@ -75,11 +77,17 @@ void subprogram [[noreturn]] (void) {
 void start_kernel [[noreturn]] (void);
 void start_kernel [[noreturn]] (void)
 {
+	uart_init();
+	systimer_init();
 	test_kprintf();
 	kprintf("=== Betriebssystem gestartet ===\n");
 	test_kernel();
 	while(true) {
 		char c = uart_getc();
+		if (c < 32 || c > 126) {
+			continue;
+		}
+
 		switch(c) {
 			case 'd':
 				kprintf("debug mode activated");
