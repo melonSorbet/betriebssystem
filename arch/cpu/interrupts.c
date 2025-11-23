@@ -50,7 +50,7 @@ static void handle_exception(
 void software_interrupt_c(exc_frame_t* frame) {
     unsigned int cpsr, spsr_svc;
     asm volatile("mrs %0, cpsr" : "=r"(cpsr));
-    spsr_svc = frame->spsr;  // SVC mode SPSR
+    spsr_svc = frame->spsr -4 ;  // SVC mode SPSR
     handle_exception(frame, "Supervisor Call",
                      false, false,
                      0, 0, 0, 0,
