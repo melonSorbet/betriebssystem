@@ -1,28 +1,34 @@
-.macro EXC_HANDLER name
+
+/*========================================================
+  Generic exception handler macro for BCM2836 (ARMv7-A)
+  Saves r0-r12, LR, SPSR safely and calls C handler
+========================================================*/
+.macro EXC_HANDLER name, lr_adjust=4
 \name:
-    sub lr, lr, #4        @ Adjust LR for prefetch abort
-    stmfd sp!, {r0-r12, lr}
-    mov r0, sp
-    bl \name\()_c
-    ldmfd sp!, {r0-r12, pc}^  @ ^ restores CPSR
+    sub lr, lr, #\lr_adjust       @ Adjust LR (4 for most, 8 for Data Abort)
+    mrs r0, spsr                  @ Save SPSR first
+    stmfd sp!, {r0}               @ Push SPSR
+    stmfd sp!, {r0-r12, lr}       @ Push general-purpose registers + LR
+    mov r0, sp                    @ Pass pointer to C handler
+    bl \name\()_c                 @ Call C handler
+    ldmfd sp!, {r0-r12, lr}       @ Restore registers + LR
+    ldmfd sp!, {r0}               @ Restore SPSR
+    msr spsr_fsx, r0
+    movs pc, lr                   @ Return from exception, restores CPSR
 .endm
 
-EXC_HANDLER software_interrupt
+/*--------------------------------------------------------
+  Define exception handlers
+--------------------------------------------------------*/
+EXC_HANDLER software_interrupt       @ SWI/SVC
 EXC_HANDLER irq
 EXC_HANDLER fiq
 EXC_HANDLER undefined_instruction
 EXC_HANDLER prefetch_abort
 EXC_HANDLER not_used
 
-/* Separate Data Abort handler for LR fixup */
-data_abort:
-    sub lr, lr, #8
-    stmfd sp!, {r0-r12, lr}
-    mov r0, sp
-    bl data_abort_c
-    ldmfd sp!, {r0-r12, pc}^
-
-
+/* Data abort has a different LR adjustment (-8) */
+EXC_HANDLER data_abort, 8
 
 .section .ivt, "a"
 .globl _ivt

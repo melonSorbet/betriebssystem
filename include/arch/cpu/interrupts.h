@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+
 typedef struct {
     uint32_t r0;
     uint32_t r1;
@@ -12,14 +13,14 @@ typedef struct {
     uint32_t r5;
     uint32_t r6;
     uint32_t r7;
-    uint32_t r8;
-    uint32_t r9;
-    uint32_t r10;
-    uint32_t r11;
-    uint32_t r12;
-    uint32_t lr;
+    uint32_t r8;      // r8 banked in FIQ mode
+    uint32_t r9;      // r9 banked in FIQ mode
+    uint32_t r10;     // r10 banked in FIQ mode
+    uint32_t r11;     // r11 banked in FIQ mode
+    uint32_t r12;     // r12 banked in FIQ mode
+    uint32_t lr;      // Link register (mode-specific)
+    uint32_t spsr;    // Saved Program Status Register
 } exc_frame_t;
-
 /* Exception C handlers */
 void software_interrupt_c(exc_frame_t *frame);
 void irq_c(exc_frame_t *frame);
