@@ -48,13 +48,12 @@ static void handle_exception(
   SWI / Supervisor Call
 -------------------------------------------------------*/
 void software_interrupt_c(exc_frame_t* frame) {
-    unsigned int cpsr, spsr_svc;
+    unsigned int cpsr;
     asm volatile("mrs %0, cpsr" : "=r"(cpsr));
-    spsr_svc = frame->spsr;  // SVC mode SPSR
     handle_exception(frame, "Supervisor Call",
                      false, false,
                      0, 0, 0, 0,
-                     cpsr, 0, 0, 0, spsr_svc);
+                     cpsr, 0, 0, 0, frame->spsr);
     uart_putc(4);
     while (true) {}
 }
@@ -66,9 +65,8 @@ void irq_c(exc_frame_t *frame) {
     uint32_t pending1 = gpu_interrupt->IRQPending1;
     uint32_t pending2 = gpu_interrupt->IRQPending2;
 
-    unsigned int cpsr, irq_spsr;
+    unsigned int cpsr;
     asm volatile("mrs %0, cpsr" : "=r"(cpsr));
-    irq_spsr = frame->spsr; // SPSR_irq
 
     if (pending2 & UART_IRQ_BIT) {
         uart_irq_handler();
@@ -81,7 +79,7 @@ void irq_c(exc_frame_t *frame) {
         handle_exception(frame, "IRQ",
                          false, false,
                          0, 0, 0, 0,
-                         cpsr, irq_spsr, 0, 0, 0);
+                         cpsr, frame->spsr, 0, 0, 0);
     }
 }
 
@@ -103,13 +101,12 @@ void fiq_c(exc_frame_t *frame) {
   Undefined Instruction
 -------------------------------------------------------*/
 void undefined_instruction_c(exc_frame_t *frame) {
-    unsigned int cpsr, und_spsr;
-    und_spsr = frame->spsr; // SPSR_und
+    unsigned int cpsr;
     asm volatile("mrs %0, cpsr" : "=r"(cpsr));
     handle_exception(frame, "Undefined Instruction",
                      false, false,
                      0, 0, 0, 0,
-                     cpsr, 0, 0, und_spsr, 0);
+                     cpsr, 0, 0, frame->spsr, 0);
     uart_putc(4);
     while (true) {}
 }
@@ -120,10 +117,14 @@ void undefined_instruction_c(exc_frame_t *frame) {
 void prefetch_abort_c(exc_frame_t *frame) {
     unsigned int ifsr = read_ifsr();
     unsigned int ifar = read_ifar();
+    unsigned int cpsr;
+    asm volatile("mrs %0, cpsr" : "=r"(cpsr));
+
+
     handle_exception(frame, "Prefetch Abort",
                      false, true,
                      0, 0, ifsr, ifar,
-                     0, 0, 0, 0, 0);
+                     cpsr, 0,  frame->spsr, 0, 0);
     uart_putc(4);
     while (true) {}
 }
@@ -134,13 +135,13 @@ void prefetch_abort_c(exc_frame_t *frame) {
 void data_abort_c(exc_frame_t *frame) {
     unsigned int dfsr = read_dfsr();
     unsigned int dfar = read_dfar();
-    unsigned int spsr_abt;
-    asm volatile("mrs %0, SPSR" : "=r"(spsr_abt)); // SPSR_abt
+    unsigned int cpsr;
+    asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
     handle_exception(frame, "Data Abort",
                      true, false,
                      dfsr, dfar, 0, 0,
-                     0, 0, spsr_abt, 0, 0);
+                     cpsr, 0, frame->spsr, 0, 0);
     uart_putc(4);
     while (true) {}
 }
@@ -149,10 +150,14 @@ void data_abort_c(exc_frame_t *frame) {
   Not Used
 -------------------------------------------------------*/
 void not_used_c(exc_frame_t *frame) {
+    unsigned int cpsr;
+    asm volatile("mrs %0, cpsr" : "=r"(cpsr));
+
+
     handle_exception(frame, "Not Used",
                      false, false,
                      0, 0, 0, 0,
-                     0, 0, 0, 0, 0);
+                     cpsr, 0, 0, 0, 0);
     uart_putc(4);
     while (true) {}
 }
