@@ -7,7 +7,7 @@
 #include "arch/bsp/uart.h"
 #include <stdint.h>
 #include <arch/bsp/systimer.h>
-
+#include <tests/regcheck.h>
 void test_kprintf(void)
 {
 	int	     my_var_i	= -12345;
@@ -59,9 +59,6 @@ void do_undefined_inst(void) {
     asm volatile(".word 0xE7F000F0"); // undefined instruction
 }
 
-void register_checker(void) {
-    // Liest und zeigt Registerinhalte
-}
 
 
 void subprogram [[noreturn]] (void) {

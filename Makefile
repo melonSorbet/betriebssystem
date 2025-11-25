@@ -70,7 +70,7 @@
 BIN_LSG = 
 
 # Hier eure source files hinzufügen
-SRC = arch/cpu/entry.S kernel/start.c arch/bsp/yellow_led.c lib/ubsan.c lib/mem.c arch/bsp/uart.c lib/alib.c lib/kprintf.c arch/cpu/interrupt_vector_table.S arch/cpu/interrupts.c lib/print_exception.c arch/bsp/systimer.c
+SRC = arch/cpu/entry.S kernel/start.c arch/bsp/yellow_led.c lib/ubsan.c lib/mem.c arch/bsp/uart.c lib/alib.c lib/kprintf.c arch/cpu/interrupt_vector_table.S arch/cpu/interrupts.c lib/print_exception.c arch/bsp/systimer.c tests/regcheck_asm.S tests/regcheck.c
 
 # Hier separate user source files hinzufügen
 USRC = user/main.c
