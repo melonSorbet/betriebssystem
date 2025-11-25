@@ -58,14 +58,14 @@ void print_exception_infos(
 
 static const char* get_mode_name(unsigned int cpsr) {
     switch(cpsr & 0x1F) {  // mask for mode bits
-        case 0x10: return "     User";
-        case 0x11: return "      FIQ";
-        case 0x12: return "      IRQ";
-        case 0x13: return "      SVC";
-        case 0x17: return "    Abort";
-        case 0x1B: return "Undefined";
-        case 0x1F: return "   System";
-        default:   return "  Unknown";
+        case 0x10: return "      User";
+        case 0x11: return "       FIQ";
+        case 0x12: return "       IRQ";
+        case 0x13: return "Supervisor";
+        case 0x17: return "     Abort";
+        case 0x1B: return " Undefined";
+        case 0x1F: return "    System";
+        default:   return "   Invalid";
     }
 }
 

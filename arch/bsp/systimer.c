@@ -46,9 +46,9 @@ bool systimer_handle_irq(void) {
 
      systimer->CS = SYSTIMER_CS_M1;
 
-      uint32_t current_time = systimer->CLO;
+    kprintf("!\n");
+    uint32_t current_time = systimer->CLO;
     uint32_t next_time = current_time + TIMER_INTERVAL;
     systimer->C1 = next_time;
-    kprintf("!\n");
-  return true;
-  }
+    return true;
+}
