@@ -8,11 +8,25 @@
 #include <stddef.h>
 #include <lib/kprintf.h>
 #include "arch/bsp/uart.h"
-
 #define PL011_BUS_BASE 0x7E201000
 #define BUS_BASE 0x7E000000
 #define CPU_PERIPHERAL_BASE 0x3F000000
 #define PL011_BASE ((PL011_BUS_BASE - BUS_BASE) + CPU_PERIPHERAL_BASE)
+
+// GPIO definitions
+#define GPIO_BASE (CPU_PERIPHERAL_BASE + 0x200000)
+#define GPFSEL1 ((volatile uint32_t*)(GPIO_BASE + 0x04))
+
+// UART pins
+#define TXD_PIN 14
+#define RXD_PIN 15
+#define TXD_PIN_INDEX (TXD_PIN % 10)  // 4
+#define RXD_PIN_INDEX (RXD_PIN % 10)  // 5
+#define GPIO_FUNC_BITS 3
+#define TXD_SHIFT (TXD_PIN_INDEX * GPIO_FUNC_BITS)  // 12
+#define RXD_SHIFT (RXD_PIN_INDEX * GPIO_FUNC_BITS)  // 15
+#define GPIO_FUNC_MASK 0x7
+#define GPIO_ALT0 0x4
 
 typedef struct {
     volatile uint32_t DR;
@@ -32,12 +46,15 @@ typedef struct {
     volatile uint32_t ICR;
     volatile uint32_t DMACR;
 } UART;
+
 volatile GPU_Interrupt_Controller* const gpu_interrupt =
-    (GPU_Interrupt_Controller*)0x3F00B200; // Update with correct CPU physical address
+    (GPU_Interrupt_Controller*)0x3F00B200;
+
 bool irq_debug = false;
 static volatile UART* const uart = (UART*)(PL011_BASE);
 
 #define UART_IRQ_BIT (1 << 25)
+
 // --- Flags ---
 #define PL011_FR_TXFF   (1 << 5)
 #define PL011_FR_RXFE   (1 << 4)
@@ -67,21 +84,34 @@ static volatile unsigned int uart_rx_tail = 0;
 
 // --- Initialization ---
 void uart_init(void) {
+    // Configure GPIO pins 14 (TXD) and 15 (RXD) for ALT0 (UART)
+    uint32_t gpfsel1_val = *GPFSEL1;
+    
+    // Clear function bits for pins 14 and 15
+    gpfsel1_val &= ~(GPIO_FUNC_MASK << TXD_SHIFT);
+    gpfsel1_val &= ~(GPIO_FUNC_MASK << RXD_SHIFT);
+    
+    // Set ALT0 function for both pins
+    gpfsel1_val |= (GPIO_ALT0 << TXD_SHIFT);
+    gpfsel1_val |= (GPIO_ALT0 << RXD_SHIFT);
+    
+    *GPFSEL1 = gpfsel1_val;
+    
     // Disable UART
     uart->CR = 0x0;
-
+    
     // Clear interrupts
     uart->ICR = 0x7FF;
-
+    
     // Enable FIFOs and 8-bit word length
     uart->LCRH = PL011_LCRH_WLEN_8BIT | PL011_LCRH_FEN;
-
+    
     // Enable interrupts
     uart->IMSC = PL011_INT_RXIM | PL011_INT_RTIM | PL011_INT_OEIM;
-
+    
     // Enable UART, TX, RX
     uart->CR = PL011_CR_UARTEN | PL011_CR_TXE | PL011_CR_RXE;
-
+    
     // Clear pending GPU interrupts and enable UART IRQ (bit 25)
     gpu_interrupt->EnableIRQs2 &= ~UART_IRQ_BIT;
     gpu_interrupt->EnableIRQs2 |= UART_IRQ_BIT;
@@ -109,7 +139,6 @@ char uart_getc(void) {
             return (char)uart->DR;
         }
     }
-
     char c = uart_rx_ring_buffer[uart_rx_tail];
     uart_rx_tail = (uart_rx_tail + 1) % UART_INPUT_BUFFER_SIZE;
     return c;
@@ -135,11 +164,8 @@ void uart_irq_handler(void) {
             uart_rx_head = next_head;
         }
     }
-
     // Clear all interrupts
     uart->ICR = 0x7FF;  // Clears RX, TX, RT, OE, FE, PE, BE
-
     __asm volatile("dsb");  // Ensure memory operations complete
     __asm volatile("isb");  // Synchronize pipeline
 }
-
