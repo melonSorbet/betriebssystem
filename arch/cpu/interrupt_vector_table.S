@@ -26,7 +26,7 @@ EXC_HANDLER not_used, 0
 .globl _ivt
 .balign 64
 _ivt:
-	b reset
+	b _start
 	ldr pc, _undefined_instruction
 	ldr pc, _software_interrupt
 	ldr pc, _prefetch_abort
@@ -43,31 +43,3 @@ _not_used: .word not_used
 _irq: .word irq
 _fiq: .word fiq
 
-.globl reset
-reset:
-    cpsid if
-    
-    cps #0x12
-    ldr sp, =irq_stack_top
-    bic sp, sp, #7
-    
-    cps #0x17
-    ldr sp, =abort_stack_top
-    bic sp, sp, #7
-    
-    cps #0x1B
-    ldr sp, =und_stack_top
-    bic sp, sp, #7
-    
-    cps #0x13
-    ldr sp, =svc_stack_top
-    bic sp, sp, #7
-    
-    cps #0x1F
-    ldr sp, =sys_stack_top
-    bic sp, sp, #7
-    
-    cps #0x13
-    cpsie if
-    
-    bl main

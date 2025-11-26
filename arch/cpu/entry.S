@@ -1,18 +1,44 @@
-
 .section .init
-// macro
-.macro SET_SP mode, sp_top
-    mrs r0, cpsr
-    orr r0, r0, #(1<<6 | 1<<7)   /* disable FIQ/IRQ */
-    msr cpsr_c, r0
 
-    /* Switch to mode */
-    msr cpsr_c, \mode
-    ldr sp, =\sp_top
-    /* Switch back to SVC */
-    msr cpsr_c, #0x13
-.endm
 .global _start
+.global _setup_stacks
+
+_setup_stacks:
+    cpsid if                   /* disable interrupts */
+    cps #0x13                  /* switch to SVC mode */
+    ldr sp, =svc_stack_top     /* set SVC stack */
+    push {lr}                  /* save return address */
+    
+    ldr r0, =irq_stack_top     /* load IRQ stack address */
+    cps #0x12                  /* switch to IRQ mode */
+    mov sp, r0                 /* set IRQ stack */
+    mov lr, #0                 /* clear LR for exception modes */
+    
+    ldr r0, =abort_stack_top   /* load Abort stack address */
+    cps #0x17                  /* switch to Abort mode */
+    mov sp, r0                 /* set Abort stack */
+    mov lr, #0                 /* clear LR */
+    
+    ldr r0, =und_stack_top     /* load Undefined stack address */
+    cps #0x1b                  /* switch to Undefined mode */
+    mov sp, r0                 /* set Undefined stack */
+    mov lr, #0                 /* clear LR */
+    
+    ldr r0, =fiq_stack_top     /* load FIQ stack address */
+    cps #0x11                  /* switch to FIQ mode */
+    mov sp, r0                 /* set FIQ stack */
+    mov lr, #0                 /* clear LR */
+    
+    ldr r0, =sys_stack_top     /* load System stack address */
+    cps #0x1f                  /* switch to System mode */
+    mov sp, r0                 /* set System stack */
+    mov lr, #0                 /* clear LR */
+    
+    cps #0x13                  /* switch back to SVC mode */
+    cpsie i                    /* enable interrupts */
+    pop {lr}                   /* restore return address */
+    bx lr                      /* return */
+
 _start:
 	/* Erkennen ob Hypervisor Mode aktiv */
 	mrs r0, cpsr
@@ -25,9 +51,7 @@ _start:
 	 */
 	beq _exitHyper
 
-	/* Qemu startet immer alle 4 Kerne
-	 * Wir lassen alle anderen Kerne endless loopen
-	 */
+
 _checkCores:
 	/* Id des Cpu Cores Abfragen */
 	mrc p15, 0, r0, c0, c0, 5
@@ -46,23 +70,10 @@ _enableAlignCheck:
 
 
 _bsprak:
-        SET_SP 0x13, svc_stack_top   /* SVC */
-	SET_SP 0x17, abort_stack_top /* Abort */
-	SET_SP 0x1B, und_stack_top   /* Undefined */
-	SET_SP 0x12, irq_stack_top   /* IRQ */
-	SET_SP 0x11, fiq_stack_top   /* FIQ */
-	SET_SP 0x1F, sys_stack_top    /* System/User */
+    bl _setup_stacks           /* setup all stacks */
 	ldr r0, =_ivt
 	mcr p15, 0, r0, c12, c0, 0   
-	cpsie i
-	cpsie f
-	/* Validen Stack Pointer setzten */
-	SET_SP 0x13, svc_stack_top   /* already done earlier, ensures SVC stack is valid */
-	cps #0x13                   /* make sure we are in SVC mode */
-
-	
-	/* Zu c Code springen */
-	bl  start_kernel
+	bl start_kernel            /* jump to C code */
 .Lend:
 	WFI
 	b .Lend
@@ -92,5 +103,3 @@ _exitHyper:
 	orr r0, r0, #0x13	//Supervisormode
 	msr spsr_hyp, r0
 	eret
-
-
