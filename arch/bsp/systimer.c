@@ -53,9 +53,9 @@ bool systimer_handle_irq(void) {
 	unsigned int counter = systimer->CLO;
 	unsigned int new_c1 = counter + TIMER_INTERVAL;
 
+	kprintf("!\n");
 	systimer->C1 = new_c1;
 	systimer->CS |= TIMER_STATUS_1;
 
-	kprintf("!\n");
 	return false;
 }
