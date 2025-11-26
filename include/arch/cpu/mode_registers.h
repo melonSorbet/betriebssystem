@@ -65,7 +65,6 @@ static inline struct mode_regs read_mode_specific_registers(void)
 
 	return regs;
 }
-#include <stdint.h>
 
 /* Data Fault Status Register (DFSR) */
 static inline unsigned int read_dfsr(void)
