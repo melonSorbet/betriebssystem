@@ -1,5 +1,5 @@
 #ifndef UART_INPUT_BUFFER_SIZE
-#define UART_INPUT_BUFFER_SIZE 256
+#define UART_INPUT_BUFFER_SIZE 2048
 #endif
 
 #include <stdint.h>
@@ -107,9 +107,8 @@ bool uart_data_available(void)
 
 void uart_irq_handler(void)
 {
-    uint32_t mis = uart->MIS;
 
-    if (mis & (PL011_INT_RX | PL011_INT_RT)) {
+    if (uart->MIS & (PL011_INT_RX | PL011_INT_RT)) {
         while (!(uart->FR & PL011_FR_RXFE)) {
             uint32_t data = uart->DR;
 
@@ -125,10 +124,7 @@ void uart_irq_handler(void)
         }
     }
 
-    if (mis & PL011_INT_OE) {
-    }
-
-    uart->ICR = mis & (PL011_INT_RX | PL011_INT_RT | PL011_INT_OE);
+    uart->ICR = PL011_INT_RX | PL011_INT_RT | PL011_INT_OE;
 }
 
 bool uart_tx_ready(void)
