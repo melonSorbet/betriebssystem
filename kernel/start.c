@@ -60,16 +60,15 @@ void do_undefined_inst(void) {
 }
 
 
-
-void subprogram [[noreturn]] (void) {
-	while(true) {
-		char c = uart_getc();
-		for(unsigned int n = 0; n < PRINT_COUNT; n++) {
-			uart_putc(c);
-			volatile unsigned int i = 0;
-			for(; i < BUSY_WAIT_COUNTER; i++) {}
-		}
-	}
+static void subprogram [[noreturn]] (void) {
+    while(true) {
+        char c = uart_getc();
+        for(unsigned int n = 0; n < PRINT_COUNT; n++) {
+            uart_putc(c);
+            volatile unsigned int i = 0;
+            for(; i < BUSY_WAIT_COUNTER; i++) {}
+        }
+    }
 }
 void start_kernel [[noreturn]] (void);
 void start_kernel [[noreturn]] (void)
@@ -80,9 +79,6 @@ void start_kernel [[noreturn]] (void)
 	test_kernel();
 	while(true) {
 		char c = uart_getc();
-		if (c < 32 || c > 126) {
-			continue;
-		}
 
 		switch(c) {
 			case 'd':
