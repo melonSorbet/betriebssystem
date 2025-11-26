@@ -76,8 +76,8 @@ void start_kernel [[noreturn]] (void)
 {
 	uart_init();
 	systimer_init();
-	test_kernel();
 	kprintf("=== Betriebssystem gestartet ===\n");
+	test_kernel();
 	while(true) {
 		char c = uart_getc();
 		if (c < 32 || c > 126) {
