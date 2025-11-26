@@ -54,7 +54,7 @@ static volatile UART *const uart = (UART *)(PL011_BASE);
 #define PL011_INT_RT   (1 << 6)
 #define PL011_INT_OE   (1 << 1)
 
- create_ringbuffer(uart_rx_buffer, UART_INPUT_BUFFER_SIZE);
+create_ringbuffer(uart_rx_buffer, UART_INPUT_BUFFER_SIZE);
 
 void uart_init(void)
 {
