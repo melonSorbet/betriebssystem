@@ -1,36 +1,26 @@
-.macro EXC_HANDLER name
+.macro EXC_HANDLER name, lr_offset
 \name:
-    sub lr, lr, #4        @ Adjust LR for prefetch abort
-    stmfd sp!, {r0-r12, lr}  @ Save r0-r12 and LR
-    mrs r0, spsr          @ Save SPSR to r0  
-    stmfd sp!, {r0}       @ Push SPSR onto stack (now spsr is at sp, lr is at sp+4)
-    mov r0, sp            @ Pass stack pointer (exc_frame_t*) to C handler
+    .if \lr_offset != 0
+    sub lr, lr, #\lr_offset
+    .endif
+    stmfd sp!, {r0-r12, lr}
+    mrs r0, spsr
+    stmfd sp!, {r0}
+    mov r0, sp
     bl \name\()_c
-    ldmfd sp!, {r0}       @ Pop SPSR into r0
-    msr spsr_cxsf, r0     @ Restore SPSR
-    ldmfd sp!, {r0-r12, pc}^  @ ^ restores CPSR from SPSR
+    ldmfd sp!, {r0}
+    msr spsr_cxsf, r0
+    ldmfd sp!, {r0-r12, lr}
+    movs pc, lr              @ 's' restores CPSR from SPSR
 .endm
 
-EXC_HANDLER software_interrupt
-EXC_HANDLER irq
-EXC_HANDLER fiq
-EXC_HANDLER undefined_instruction
-EXC_HANDLER prefetch_abort
-EXC_HANDLER not_used
-
-/* Separate Data Abort handler for LR fixup */
-data_abort:
-    sub lr, lr, #8
-    stmfd sp!, {r0-r12, lr}  @ Save r0-r12 and LR
-    mrs r0, spsr          @ Save SPSR to r0
-    stmfd sp!, {r0}       @ Push SPSR onto stack
-    mov r0, sp            @ Pass stack pointer (exc_frame_t*) to C handler
-    bl data_abort_c
-    ldmfd sp!, {r0}       @ Pop SPSR into r0
-    msr spsr_cxsf, r0     @ Restore SPSR
-    ldmfd sp!, {r0-r12, pc}^  @ ^ restores CPSR from SPSR
-
-
+EXC_HANDLER software_interrupt, 0
+EXC_HANDLER irq, 4
+EXC_HANDLER fiq, 4
+EXC_HANDLER undefined_instruction, 0
+EXC_HANDLER prefetch_abort, 4
+EXC_HANDLER data_abort, 8
+EXC_HANDLER not_used, 0
 
 .section .ivt, "a"
 .globl _ivt
@@ -53,29 +43,31 @@ _not_used: .word not_used
 _irq: .word irq
 _fiq: .word fiq
 
-
 .globl reset
 reset:
-    /* Disable interrupts */
-    cpsid i
-
-    /* IRQ Mode Stack */
-    cps #0x12              @ Switch to IRQ mode
+    cpsid if
+    
+    cps #0x12
     ldr sp, =irq_stack_top
-    bic sp, sp, #7         @ 8-byte alignment
-
-    /* Supervisor Mode Stack (Main Kernel Stack) */
-    cps #0x13              @ SVC mode
+    bic sp, sp, #7
+    
+    cps #0x17
+    ldr sp, =abort_stack_top
+    bic sp, sp, #7
+    
+    cps #0x1B
+    ldr sp, =und_stack_top
+    bic sp, sp, #7
+    
+    cps #0x13
     ldr sp, =svc_stack_top
     bic sp, sp, #7
-
-    /* System Mode Stack (User Mode) */
-    cps #0x1F              @ System mode
+    
+    cps #0x1F
     ldr sp, =sys_stack_top
     bic sp, sp, #7
-
-    /* Enable interrupts */
-    cpsie i
-
-    /* Jump to main() */
+    
+    cps #0x13
+    cpsie if
+    
     bl main
