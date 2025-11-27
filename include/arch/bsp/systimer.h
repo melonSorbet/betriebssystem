@@ -9,4 +9,3 @@
 void systimer_init(void);
 bool systimer_handle_irq(void);
 #endif
-
