@@ -44,7 +44,7 @@ typedef struct {
 
 // Public API
 void scheduler_init(void);
-void scheduler_start(void);
+void scheduler_start [[noreturn]] (void);
 void scheduler_thread_create(void (*func)(void *), const void *arg, unsigned int arg_size);
 void scheduler_schedule(void);
 void scheduler_terminate_current_thread(void);

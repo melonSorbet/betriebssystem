@@ -56,7 +56,7 @@ void scheduler_init(void) {
     scheduler_running = false;
 }
 
-void scheduler_start(void) {
+void scheduler_start [[noreturn]] (void) {
     scheduler_running = true;
     
     // Select the first thread to run
