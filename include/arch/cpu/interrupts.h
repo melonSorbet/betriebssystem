@@ -2,22 +2,24 @@
 #define EXC_FRAME_H
 
 #include <stdint.h>
+
 typedef struct {
-    uint32_t spsr;
-    uint32_t r0;
-    uint32_t r1;
-    uint32_t r2;
-    uint32_t r3;
-    uint32_t r4;
-    uint32_t r5;
-    uint32_t r6;
-    uint32_t r7;
-    uint32_t r8;
-    uint32_t r9;
-    uint32_t r10;
-    uint32_t r11;
-    uint32_t r12;
-    uint32_t lr;   // Return address
+	uint32_t spsr;
+	uint32_t sp;      // Add this - user mode stack pointer
+	uint32_t r0;
+	uint32_t r1;
+	uint32_t r2;
+	uint32_t r3;
+	uint32_t r4;
+	uint32_t r5;
+	uint32_t r6;
+	uint32_t r7;
+	uint32_t r8;
+	uint32_t r9;
+	uint32_t r10;
+	uint32_t r11;
+	uint32_t r12;
+	uint32_t lr;
 } exc_frame_t;
 
 void software_interrupt_c(exc_frame_t *frame);

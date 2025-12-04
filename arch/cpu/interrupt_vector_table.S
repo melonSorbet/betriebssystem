@@ -4,12 +4,32 @@
     sub lr, lr, #\lr_offset
     .endif
     stmfd sp!, {r0-r12, lr}
+    
+    @ Save user SP
+    mrs r1, cpsr
+    bic r2, r1, #0x1F
+    orr r2, r2, #0x1F
+    msr cpsr_c, r2
+    mov r0, sp
+    msr cpsr_c, r1
+    stmfd sp!, {r0}
+    
     mrs r0, spsr
     stmfd sp!, {r0}
     mov r0, sp
     bl \name\()_c
     ldmfd sp!, {r0}
     msr spsr_cxsf, r0
+    
+    @ Restore user SP
+    ldmfd sp!, {r0}
+    mrs r1, cpsr
+    bic r2, r1, #0x1F
+    orr r2, r2, #0x1F
+    msr cpsr_c, r2
+    mov sp, r0
+    msr cpsr_c, r1
+    
     ldmfd sp!, {r0-r12, lr}
     movs pc, lr              @ 's' restores CPSR from SPSR
 .endm
@@ -42,4 +62,3 @@ _data_abort: .word data_abort
 _not_used: .word not_used
 _irq: .word irq
 _fiq: .word fiq
-

@@ -3,10 +3,10 @@
 #include <arch/cpu/interrupts.h>
 #include <lib/kprintf.h>
 #include <lib/mem.h>
+
 // Thread table
 static tcb_t thread_table[MAX_THREADS];
 static uint32_t current_thread_id = 0;
-static uint32_t next_thread_id = 1;
 static bool scheduler_running = false;
 
 // Idle thread function
@@ -16,11 +16,13 @@ static void idle_thread(void *arg) {
         __asm volatile("wfi"); // Wait for interrupt
     }
 }
+
 static void syscall_exit(void) {
     __asm volatile("svc #0");
     // Never returns
     while(1);
 }
+
 // Thread wrapper - calls thread function and exits when done
 static void thread_wrapper(void) {
     tcb_t *current = &thread_table[current_thread_id];
@@ -56,8 +58,28 @@ void scheduler_init(void) {
 
 void scheduler_start(void) {
     scheduler_running = true;
-    // Switch to first user thread (or idle if none exist)
+    
+    // Select the first thread to run
     scheduler_schedule();
+    
+    // Get the selected thread
+    tcb_t *thread = &thread_table[current_thread_id];
+    
+    // Jump to the thread - this never returns
+    __asm volatile(
+        "mov sp, %0\n"           // Set stack pointer
+        "mov lr, %1\n"           // Set return address (PC)
+        "msr cpsr_c, %2\n"       // Set CPSR (switch to user mode)
+        "mov pc, lr\n"           // Jump to thread
+        :
+        : "r"(thread->context.sp),
+          "r"(thread->context.pc),
+          "r"(thread->context.cpsr)
+        : "memory"
+    );
+    
+    // Should never reach here
+    __builtin_unreachable();
 }
 
 void scheduler_thread_create(void (*func)(void *), const void *arg, unsigned int arg_size) {
@@ -185,12 +207,7 @@ void scheduler_context_switch(exc_frame_t *frame) {
     current->context.r10 = frame->r10;
     current->context.r11 = frame->r11;
     current->context.r12 = frame->r12;
-    
-    // The previous error was here (Line 188):
-    // current->context.sp = frame->sp;
-    // Removed, as 'exc_frame_t' does not contain 'sp'. The thread's stack pointer 
-    // must be saved in the assembly handler before calling this C function.
-    
+    current->context.sp = frame->sp;
     current->context.lr = frame->lr;
     current->context.pc = frame->lr; // PC is the return address (saved as LR in the frame)
     current->context.cpsr = frame->spsr;
@@ -213,12 +230,7 @@ void scheduler_context_switch(exc_frame_t *frame) {
     frame->r10 = next->context.r10;
     frame->r11 = next->context.r11;
     frame->r12 = next->context.r12;
-    
-    // The previous error was here (Line 211):
-    // frame->sp = next->context.sp;
-    // Removed. The next thread's stack pointer must be restored in the assembly
-    // handler after this C function returns.
-    
+    frame->sp = next->context.sp;
     frame->lr = next->context.pc; // Restore PC into the saved LR register
     frame->spsr = next->context.cpsr;
 }
