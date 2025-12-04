@@ -38,11 +38,10 @@ typedef struct {
 typedef struct {
     thread_context_t context;
     thread_state_t state;
-    uint8_t stack[THREAD_STACK_SIZE];
     uint32_t thread_id;
-} tcb_t;
-
-// Public API
+    // ... any other fields ...
+    uint8_t stack[THREAD_STACK_SIZE];
+} tcb_t;// Public API
 void scheduler_init(void);
 void scheduler_start [[noreturn]] (void);
 void scheduler_thread_create(void (*func)(void *), const void *arg, unsigned int arg_size);

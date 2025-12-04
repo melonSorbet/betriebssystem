@@ -74,15 +74,14 @@ static void handle_exception(exc_frame_t *frame, const char *name, bool is_data_
 			      ifsr, ifar, cpsr, irq_spsr, abort_spsr, undefined_spsr,
 			      supervisor_spsr);
 }
-
+#include <arch/cpu/scheduler.h>
 void software_interrupt_c(exc_frame_t *frame)
 {
-	unsigned int cpsr;
-	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
-	handle_exception(frame, "Supervisor Call", false, false, 0, 0, 0, 0, cpsr);
-	uart_putc(4);
-	while (true) {
-	}
+    // Thread called exit - terminate current thread and switch to next
+    scheduler_terminate_current_thread();
+    
+    // Perform context switch to the next thread
+    scheduler_context_switch(frame);
 }
 #include <arch/cpu/scheduler.h>
 void irq_c(exc_frame_t *frame)
@@ -94,9 +93,9 @@ void irq_c(exc_frame_t *frame)
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
 	if (pending2 & UART_IRQ_BIT) {
-		uart_irq_handler();
-		scheduler_context_switch(frame);
-	}
+    uart_irq_handler();                // Handle UART first (create thread)
+    scheduler_context_switch(frame);   // Then do context switch
+}
 	if (pending1 & SYSTIMER_IRQ_BIT) {
 		systimer_handle_irq();
 	}

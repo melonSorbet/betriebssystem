@@ -113,52 +113,37 @@ void uart_irq_handler(void)
     if (uart->MIS & (PL011_INT_RX | PL011_INT_RT)) {
         while (!(uart->FR & PL011_FR_RXFE)) {
             uint32_t data = uart->DR;
-
             if (data & (1 << 8)) {
-                // ... Fehlerbehandlung ...
+                volatile uint32_t error_clear = uart->RSR_ECR;
+                (void)error_clear;
                 continue;
             }
-
             char c = (char)(data & 0xFF);
-            
-            // NEUE LOGIK START
-            char arg = c; // Das Zeichen als Argument kopieren
             
             switch (c) {
                 case 'S':
-                    // S: Supervisor Call auslösen
-                    // Führt SVC im Kontext des aktuell unterbrochenen Threads aus
                     do_svc(); 
                     break;
                 case 'P':
-                    // P: Prefetch Abort erzeugen
                     do_prefetch_abort();
                     break;
                 case 'A':
-                    // A: Data Abort erzeugen
                     do_data_abort();
                     break;
                 case 'U':
-                    // U: Undefined Instruction ausführen
                     do_undef();
                     break;
                 default:
-                    // Alle anderen Zeichen: Neuen Thread erstellen
-                    // Die Funktion main aus Anhang A wird mit dem Zeichen c als Argument gestartet.
-                    scheduler_thread_create(main, &arg, sizeof(arg));
+                    // Pass address of c directly - scheduler_thread_create will copy it
+                    scheduler_thread_create(main, &c, sizeof(c));
                     break;
             }
             
-            // NEUE LOGIK ENDE
-
-            // Das Zeichen weiterhin im Puffer speichern (optional, wenn es für andere Zwecke benötigt wird)
             buff_putc(uart_rx_buffer, c);
         }
     }
-
     uart->ICR = PL011_INT_RX | PL011_INT_RT | PL011_INT_OE;
 }
-
 bool uart_tx_ready(void)
 {
 	return !(uart->FR & PL011_FR_TXFF);

@@ -1,6 +1,7 @@
 #include <config.h>
 #include <arch/bsp/uart.h>
 #include <tests/regcheck.h>
+#include <user/main.h>
 
 void do_data_abort(void)
 {

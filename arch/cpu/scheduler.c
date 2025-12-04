@@ -27,7 +27,7 @@ static void syscall_exit(void) {
 static void thread_wrapper(void) {
     tcb_t *current = &thread_table[current_thread_id];
     
-    // Get the actual thread function and argument from the stack
+    // Get the actual thread function and argument
     void (*func)(void *) = (void (*)(void *))current->context.r0;
     void *arg = (void *)current->context.r1;
     
@@ -48,10 +48,18 @@ void scheduler_init(void) {
     // Create idle thread (thread 0)
     current_thread_id = 0;
     thread_table[0].state = THREAD_STATE_RUNNING;
-    thread_table[0].context.sp = (uint32_t)&thread_table[0].stack[THREAD_STACK_SIZE - 4];
-    thread_table[0].context.pc = (uint32_t)idle_thread;
-    thread_table[0].context.lr = 0;
-    thread_table[0].context.cpsr = 0x10; // User mode, all interrupts enabled
+    
+    // Initialize all registers to 0
+    memset(&thread_table[0].context, 0, sizeof(thread_context_t));
+    
+    // Set up idle thread - lr is the entry point
+    // Calculate stack top and align it down to 8-byte boundary
+    uint32_t stack_top = (uint32_t)&thread_table[0].stack[THREAD_STACK_SIZE];
+    stack_top = stack_top & ~0x7;  // Align down to 8-byte boundary
+    
+    thread_table[0].context.sp = stack_top;
+    thread_table[0].context.lr = (uint32_t)idle_thread;
+    thread_table[0].context.cpsr = 0x10; // User mode, IRQ enabled
     
     scheduler_running = false;
 }
@@ -65,16 +73,15 @@ void scheduler_start [[noreturn]] (void) {
     // Get the selected thread
     tcb_t *thread = &thread_table[current_thread_id];
     
-    // Jump to the thread - this never returns
+    // Switch to user mode and jump to thread
     __asm volatile(
-        "mov sp, %0\n"           // Set stack pointer
-        "mov lr, %1\n"           // Set return address (PC)
-        "msr cpsr_c, %2\n"       // Set CPSR (switch to user mode)
-        "mov pc, lr\n"           // Jump to thread
+        "msr cpsr_c, %0\n"       // Switch to user mode
+        "mov sp, %1\n"           // Set user stack pointer
+        "mov pc, %2\n"           // Jump to thread (lr contains entry point)
         :
-        : "r"(thread->context.sp),
-          "r"(thread->context.pc),
-          "r"(thread->context.cpsr)
+        : "r"(thread->context.cpsr),
+          "r"(thread->context.sp),
+          "r"(thread->context.lr)
         : "memory"
     );
     
@@ -105,30 +112,33 @@ void scheduler_thread_create(void (*func)(void *), const void *arg, unsigned int
     
     tcb_t *new_thread = &thread_table[free_slot];
     
-    // Initialize stack (grows downward)
-    uint32_t *stack_ptr = (uint32_t *)&new_thread->stack[THREAD_STACK_SIZE];
+    // Get stack top address and align it down to 8-byte boundary
+    uint32_t stack_top = (uint32_t)&new_thread->stack[THREAD_STACK_SIZE];
+    stack_top = stack_top & ~0x7;  // Align down to 8-byte boundary
     
     // Copy argument to thread stack if provided
     void *arg_ptr = NULL;
     if (arg && arg_size > 0) {
-        stack_ptr = (uint32_t *)((uint8_t *)stack_ptr - arg_size);
-        // Align to 4 bytes
-        stack_ptr = (uint32_t *)((uint32_t)stack_ptr & ~0x3);
-        memcpy(stack_ptr, arg, arg_size);
-        arg_ptr = stack_ptr;
+        // Round up arg_size to next multiple of 8 for alignment
+        unsigned int aligned_size = (arg_size + 7) & ~0x7;
+        
+        // Move stack pointer down by aligned size
+        stack_top -= aligned_size;
+        
+        // Copy argument data (original size, not padded)
+        memcpy((void *)stack_top, arg, arg_size);
+        arg_ptr = (void *)stack_top;
     }
-    
-    // Reserve space for initial context (16 words = 64 bytes)
-    stack_ptr -= 16;
     
     // Initialize thread context
     memset(&new_thread->context, 0, sizeof(thread_context_t));
-    new_thread->context.r0 = (uint32_t)func;        // Function pointer
-    new_thread->context.r1 = (uint32_t)arg_ptr;     // Argument pointer
-    new_thread->context.sp = (uint32_t)stack_ptr;
-    new_thread->context.pc = (uint32_t)thread_wrapper;
-    new_thread->context.lr = 0;
-    new_thread->context.cpsr = 0x10; // User mode (0x10), IRQ enabled
+    
+    // Set up registers for thread_wrapper
+    new_thread->context.r0 = (uint32_t)func;           // Function pointer
+    new_thread->context.r1 = (uint32_t)arg_ptr;        // Argument pointer
+    new_thread->context.sp = stack_top;                // Stack pointer (8-byte aligned)
+    new_thread->context.lr = (uint32_t)thread_wrapper; // Entry point
+    new_thread->context.cpsr = 0x10;                   // User mode, IRQ enabled
     
     new_thread->state = THREAD_STATE_READY;
     new_thread->thread_id = free_slot;
@@ -142,8 +152,11 @@ void scheduler_schedule(void) {
         return;
     }
     
-    // Print newline for context switch (as per requirements)
-    uart_putc('\n');
+    
+    // Disable interrupts during scheduling
+    uint32_t cpsr;
+    __asm volatile("mrs %0, cpsr" : "=r"(cpsr));
+    __asm volatile("cpsid if");
     
     // Save current thread state (if running)
     if (thread_table[current_thread_id].state == THREAD_STATE_RUNNING) {
@@ -158,6 +171,7 @@ void scheduler_schedule(void) {
         if (thread_table[next_id].state == THREAD_STATE_READY) {
             current_thread_id = next_id;
             thread_table[current_thread_id].state = THREAD_STATE_RUNNING;
+            __asm volatile("msr cpsr_c, %0" : : "r"(cpsr));
             return;
         }
         next_id = (next_id + 1) % MAX_THREADS;
@@ -166,15 +180,20 @@ void scheduler_schedule(void) {
     // No ready thread found - check current thread
     if (thread_table[current_thread_id].state == THREAD_STATE_READY) {
         thread_table[current_thread_id].state = THREAD_STATE_RUNNING;
+        __asm volatile("msr cpsr_c, %0" : : "r"(cpsr));
         return;
     }
     
     // Fall back to idle thread (thread 0)
     current_thread_id = IDLE_THREAD_ID;
     thread_table[current_thread_id].state = THREAD_STATE_RUNNING;
+    
+    __asm volatile("msr cpsr_c, %0" : : "r"(cpsr));
 }
 
 void scheduler_terminate_current_thread(void) {
+    // Disable interrupts
+    
     // Mark current thread as terminated
     thread_table[current_thread_id].state = THREAD_STATE_TERMINATED;
     
@@ -187,6 +206,7 @@ tcb_t* scheduler_get_current_thread(void) {
 }
 
 // Context switch function - called from IRQ handler
+// Exception frame layout: spsr, sp, r0-r12, lr
 void scheduler_context_switch(exc_frame_t *frame) {
     if (!scheduler_running) {
         return;
@@ -194,6 +214,8 @@ void scheduler_context_switch(exc_frame_t *frame) {
     
     // Save current thread context from exception frame
     tcb_t *current = &thread_table[current_thread_id];
+    current->context.cpsr = frame->spsr;
+    current->context.sp = frame->sp;
     current->context.r0 = frame->r0;
     current->context.r1 = frame->r1;
     current->context.r2 = frame->r2;
@@ -207,16 +229,15 @@ void scheduler_context_switch(exc_frame_t *frame) {
     current->context.r10 = frame->r10;
     current->context.r11 = frame->r11;
     current->context.r12 = frame->r12;
-    current->context.sp = frame->sp;
-    current->context.lr = frame->lr;
-    current->context.pc = frame->lr; // PC is the return address (saved as LR in the frame)
-    current->context.cpsr = frame->spsr;
+    current->context.lr = frame->lr;  // LR contains return address
     
     // Select next thread
     scheduler_schedule();
     
     // Restore next thread context to exception frame
     tcb_t *next = &thread_table[current_thread_id];
+    frame->spsr = next->context.cpsr;
+    frame->sp = next->context.sp;
     frame->r0 = next->context.r0;
     frame->r1 = next->context.r1;
     frame->r2 = next->context.r2;
@@ -230,7 +251,5 @@ void scheduler_context_switch(exc_frame_t *frame) {
     frame->r10 = next->context.r10;
     frame->r11 = next->context.r11;
     frame->r12 = next->context.r12;
-    frame->sp = next->context.sp;
-    frame->lr = next->context.pc; // Restore PC into the saved LR register
-    frame->spsr = next->context.cpsr;
+    frame->lr = next->context.lr;  // Restore return address
 }

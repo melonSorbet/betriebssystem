@@ -3,37 +3,47 @@
     .if \lr_offset != 0
     sub lr, lr, #\lr_offset
     .endif
+    
+    @ Save r0-r12 and lr on exception mode stack
     stmfd sp!, {r0-r12, lr}
     
-    @ Save user SP
-    mrs r1, cpsr
-    bic r2, r1, #0x1F
-    orr r2, r2, #0x1F
-    msr cpsr_c, r2
-    mov r0, sp
-    msr cpsr_c, r1
-    stmfd sp!, {r0}
+    @ Save user mode SP
+    @ We need to switch to System mode to access user registers
+    mrs r0, cpsr              @ Save current CPSR (exception mode)
+    bic r1, r0, #0x1F         @ Clear mode bits
+    orr r1, r1, #0x1F         @ Set to System mode (0x1F) - uses user registers
+    msr cpsr_c, r1            @ Switch to System mode
+    mov r2, sp                @ r2 = user SP
+    msr cpsr_c, r0            @ Switch back to exception mode
     
+    @ Push user SP onto exception stack
+    stmfd sp!, {r2}
+    
+    @ Save SPSR
     mrs r0, spsr
     stmfd sp!, {r0}
+    
+    @ Call C handler with frame pointer
     mov r0, sp
     bl \name\()_c
+    
+    @ Restore SPSR
     ldmfd sp!, {r0}
     msr spsr_cxsf, r0
     
     @ Restore user SP
-    ldmfd sp!, {r0}
-    mrs r1, cpsr
-    bic r2, r1, #0x1F
-    orr r2, r2, #0x1F
-    msr cpsr_c, r2
-    mov sp, r0
-    msr cpsr_c, r1
+    ldmfd sp!, {r2}
+    mrs r0, cpsr              @ Save current CPSR
+    bic r1, r0, #0x1F         @ Clear mode bits
+    orr r1, r1, #0x1F         @ System mode
+    msr cpsr_c, r1            @ Switch to System mode
+    mov sp, r2                @ Restore user SP
+    msr cpsr_c, r0            @ Switch back to exception mode
     
+    @ Restore r0-r12 and lr
     ldmfd sp!, {r0-r12, lr}
-    movs pc, lr              @ 's' restores CPSR from SPSR
+    movs pc, lr               @ Return and restore CPSR from SPSR
 .endm
-
 EXC_HANDLER software_interrupt, 0
 EXC_HANDLER irq, 4
 EXC_HANDLER fiq, 4
