@@ -161,15 +161,23 @@ void scheduler_schedule(void) {
     // Print newline for context switch
     uart_putc('\n');
     
-    // Mark current thread as ready (if it was running)
-    if (thread_table[current_thread_id].state == THREAD_STATE_RUNNING) {
+    // Mark current thread as ready (if it was running and not idle)
+    if (thread_table[current_thread_id].state == THREAD_STATE_RUNNING 
+        && current_thread_id != IDLE_THREAD_ID) {
         thread_table[current_thread_id].state = THREAD_STATE_READY;
     }
     
-    // Round-robin: find next ready thread
-    // Search through ALL threads exactly once
-    for (uint32_t i = 0; i < MAX_THREADS; i++) {
-        uint32_t next_id = (current_thread_id + 1 + i) % MAX_THREADS;
+    // Round-robin through threads 1 to MAX_THREADS-1 (skip idle at 0)
+    // Start searching from the thread after current
+    uint32_t next_id = current_thread_id;
+    
+    for (uint32_t count = 0; count < MAX_THREADS - 1; count++) {
+        // Move to next thread (wrapping around within 1..MAX_THREADS-1)
+        if (next_id == 0 || next_id >= MAX_THREADS - 1) {
+            next_id = 1;
+        } else {
+            next_id++;
+        }
         
         if (thread_table[next_id].state == THREAD_STATE_READY) {
             current_thread_id = next_id;
@@ -178,15 +186,9 @@ void scheduler_schedule(void) {
         }
     }
     
-    // No ready thread found - check if current thread can continue
-    if (thread_table[current_thread_id].state == THREAD_STATE_READY) {
-        thread_table[current_thread_id].state = THREAD_STATE_RUNNING;
-        return;
-    }
-    
-    // Fall back to idle thread
+    // No ready thread found - fall back to idle thread
     current_thread_id = IDLE_THREAD_ID;
-    thread_table[current_thread_id].state = THREAD_STATE_RUNNING;
+    thread_table[IDLE_THREAD_ID].state = THREAD_STATE_RUNNING;
 }
 
 void scheduler_terminate_current_thread(void) {
