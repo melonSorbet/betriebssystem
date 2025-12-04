@@ -84,7 +84,7 @@ void software_interrupt_c(exc_frame_t *frame)
 	while (true) {
 	}
 }
-
+#include <arch/cpu/scheduler.h>
 void irq_c(exc_frame_t *frame)
 {
 	uint32_t pending1 = gpu_interrupt->IRQPending1;
@@ -95,6 +95,7 @@ void irq_c(exc_frame_t *frame)
 
 	if (pending2 & UART_IRQ_BIT) {
 		uart_irq_handler();
+		scheduler_context_switch(frame);
 	}
 	if (pending1 & SYSTIMER_IRQ_BIT) {
 		systimer_handle_irq();

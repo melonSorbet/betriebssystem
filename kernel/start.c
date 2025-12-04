@@ -75,11 +75,14 @@ static void subprogram [[noreturn]] (void)
 		}
 	}
 }
+#include <arch/cpu/scheduler.h>
 void start_kernel [[noreturn]] (void);
 void start_kernel [[noreturn]] (void)
 {
 	uart_init();
 	systimer_init();
+	scheduler_init();
+	scheduler_start();
 	kprintf("=== Betriebssystem gestartet ===\n");
 	test_kernel();
 	while (true) {
