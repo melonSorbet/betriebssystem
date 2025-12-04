@@ -172,11 +172,10 @@ void scheduler_schedule(void) {
     uint32_t next_id = current_thread_id;
     
     for (uint32_t count = 0; count < MAX_THREADS - 1; count++) {
-        // Move to next thread (wrapping around within 1..MAX_THREADS-1)
-        if (next_id == 0 || next_id >= MAX_THREADS - 1) {
+        // Move to next thread in range [1, MAX_THREADS-1]
+        next_id++;
+        if (next_id == 0 || next_id >= MAX_THREADS) {
             next_id = 1;
-        } else {
-            next_id++;
         }
         
         if (thread_table[next_id].state == THREAD_STATE_READY) {
