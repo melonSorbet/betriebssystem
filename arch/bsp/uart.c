@@ -1,3 +1,5 @@
+#include "arch/cpu/scheduler.h"
+#include "user/main.h"
 #ifndef UART_INPUT_BUFFER_SIZE
 #define UART_INPUT_BUFFER_SIZE 2048
 #endif
@@ -105,25 +107,56 @@ bool uart_data_available(void)
 	return !buff_is_empty(uart_rx_buffer);
 }
 
+#include <user/main.h>
 void uart_irq_handler(void)
 {
-	if (uart->MIS & (PL011_INT_RX | PL011_INT_RT)) {
-		while (!(uart->FR & PL011_FR_RXFE)) {
-			uint32_t data = uart->DR;
+    if (uart->MIS & (PL011_INT_RX | PL011_INT_RT)) {
+        while (!(uart->FR & PL011_FR_RXFE)) {
+            uint32_t data = uart->DR;
 
-			if (data & (1 << 8)) {
-				volatile uint32_t error_clear = uart->RSR_ECR;
-				(void)error_clear;
-				continue;
-			}
+            if (data & (1 << 8)) {
+                // ... Fehlerbehandlung ...
+                continue;
+            }
 
-			char c = (char)(data & 0xFF);
+            char c = (char)(data & 0xFF);
+            
+            // NEUE LOGIK START
+            char arg = c; // Das Zeichen als Argument kopieren
+            
+            switch (c) {
+                case 'S':
+                    // S: Supervisor Call auslösen
+                    // Führt SVC im Kontext des aktuell unterbrochenen Threads aus
+                    do_svc(); 
+                    break;
+                case 'P':
+                    // P: Prefetch Abort erzeugen
+                    do_prefetch_abort();
+                    break;
+                case 'A':
+                    // A: Data Abort erzeugen
+                    do_data_abort();
+                    break;
+                case 'U':
+                    // U: Undefined Instruction ausführen
+                    do_undef();
+                    break;
+                default:
+                    // Alle anderen Zeichen: Neuen Thread erstellen
+                    // Die Funktion main aus Anhang A wird mit dem Zeichen c als Argument gestartet.
+                    scheduler_thread_create(main, &arg, sizeof(arg));
+                    break;
+            }
+            
+            // NEUE LOGIK ENDE
 
-			buff_putc(uart_rx_buffer, c);
-		}
-	}
+            // Das Zeichen weiterhin im Puffer speichern (optional, wenn es für andere Zwecke benötigt wird)
+            buff_putc(uart_rx_buffer, c);
+        }
+    }
 
-	uart->ICR = PL011_INT_RX | PL011_INT_RT | PL011_INT_OE;
+    uart->ICR = PL011_INT_RX | PL011_INT_RT | PL011_INT_OE;
 }
 
 bool uart_tx_ready(void)

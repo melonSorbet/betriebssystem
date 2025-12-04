@@ -26,6 +26,6 @@ void start_kernel [[noreturn]] (void)
     kprintf("=== Betriebssystem gestartet ===\n");
  
     
-    scheduler_start();  // Never returns
     test_kernel();
+    scheduler_start();  // Never returns
 }

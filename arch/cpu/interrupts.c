@@ -94,8 +94,8 @@ void irq_c(exc_frame_t *frame)
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
 	if (pending2 & UART_IRQ_BIT) {
-		uart_irq_handler();
 		scheduler_context_switch(frame);
+		uart_irq_handler();
 	}
 	if (pending1 & SYSTIMER_IRQ_BIT) {
 		systimer_handle_irq();
