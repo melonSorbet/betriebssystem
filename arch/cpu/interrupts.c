@@ -82,6 +82,20 @@ void software_interrupt_c(exc_frame_t *frame)
     
     // Perform context switch to the next thread
     scheduler_context_switch(frame);
+		 uint32_t mode = frame->spsr & 0x1f;
+	bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+    if (is_user_mode) {
+        // thread crash - terminate and continue
+        scheduler_terminate_current_thread();
+        
+        scheduler_context_switch(frame);
+    } else {
+        // kernel crash - halt everything
+        while(1) {
+            __asm volatile("wfi");
+        }
+    }
+
 }
 #include <arch/cpu/scheduler.h>
 void irq_c(exc_frame_t *frame)
@@ -110,9 +124,21 @@ void fiq_c(exc_frame_t *frame)
 	unsigned int cpsr;
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 	handle_exception(frame, "FIQ", false, false, 0, 0, 0, 0, cpsr);
-	uart_putc(4);
-	while (true) {
-	}
+		 uint32_t mode = frame->spsr & 0x1f;
+	bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+    if (is_user_mode) {
+        // thread crash - terminate and continue
+        scheduler_terminate_current_thread();
+        
+        scheduler_context_switch(frame);
+    } else {
+        // kernel crash - halt everything
+        while(1) {
+            __asm volatile("wfi");
+        }
+    }
+
+
 }
 
 void undefined_instruction_c(exc_frame_t *frame)
@@ -120,9 +146,22 @@ void undefined_instruction_c(exc_frame_t *frame)
 	unsigned int cpsr;
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 	handle_exception(frame, "Undefined Instruction", false, false, 0, 0, 0, 0, cpsr);
-	uart_putc(4);
-	while (true) {
-	}
+
+	
+	 uint32_t mode = frame->spsr & 0x1f;
+	bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+    if (is_user_mode) {
+        // thread crash - terminate and continue
+        scheduler_terminate_current_thread();
+        
+        scheduler_context_switch(frame);
+    } else {
+        // kernel crash - halt everything
+        while(1) {
+            __asm volatile("wfi");
+        }
+    }
+
 }
 
 void prefetch_abort_c(exc_frame_t *frame)
@@ -132,10 +171,22 @@ void prefetch_abort_c(exc_frame_t *frame)
 	unsigned int cpsr;
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
+
+   
 	handle_exception(frame, "Prefetch Abort", false, true, 0, 0, ifsr, ifar, cpsr);
-	uart_putc(4);
-	while (true) {
-	}
+     uint32_t mode = frame->spsr & 0x1f;
+    bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+    if (is_user_mode) {
+        // thread crash - terminate and continue
+        scheduler_terminate_current_thread();
+        
+        scheduler_context_switch(frame);
+    } else {
+        // kernel crash - halt everything
+        while(1) {
+            __asm volatile("wfi");
+        }
+    }
 }
 
 void data_abort_c(exc_frame_t *frame)
@@ -146,9 +197,20 @@ void data_abort_c(exc_frame_t *frame)
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
 	handle_exception(frame, "Data Abort", true, false, dfsr, dfar, 0, 0, cpsr);
-	uart_putc(4);
-	while (true) {
-	}
+
+	 uint32_t mode = frame->spsr & 0x1f;
+    bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+    if (is_user_mode) {
+        // thread crash - terminate and continue
+        scheduler_terminate_current_thread();
+        
+        scheduler_context_switch(frame);
+    } else {
+        // kernel crash - halt everything
+        while(1) {
+            __asm volatile("wfi");
+        }
+    }
 }
 
 void not_used_c(exc_frame_t *frame)
@@ -157,7 +219,19 @@ void not_used_c(exc_frame_t *frame)
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
 	handle_exception(frame, "Not Used", false, false, 0, 0, 0, 0, cpsr);
-	uart_putc(4);
-	while (true) {
-	}
+
+
+	 uint32_t mode = frame->spsr & 0x1f;
+	bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+    if (is_user_mode) {
+        // thread crash - terminate and continue
+        scheduler_terminate_current_thread();
+        
+        scheduler_context_switch(frame);
+    } else {
+        // kernel crash - halt everything
+        while(1) {
+            __asm volatile("wfi");
+        }
+    }
 }
