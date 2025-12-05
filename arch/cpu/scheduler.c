@@ -65,24 +65,9 @@ void scheduler_init(void) {
 
 void scheduler_start [[noreturn]] (void) {
     scheduler_running = true;
+    while (1) {
     
-    // Select the first thread to run
-    scheduler_schedule();
-    
-    // Get the selected thread
-    tcb_t *thread = &thread_table[current_thread_id];
-    
-    // Switch to user mode and jump to thread
-    __asm volatile(
-        "msr cpsr_c, %0\n"
-        "mov sp, %1\n"
-        "mov pc, %2\n"
-        :
-        : "r"(thread->context.cpsr),
-          "r"(thread->context.sp),
-          "r"(thread->context.lr)
-        : "memory"
-    );
+    }
     
     __builtin_unreachable();
 }

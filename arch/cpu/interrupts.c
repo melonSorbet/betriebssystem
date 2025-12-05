@@ -94,10 +94,10 @@ void irq_c(exc_frame_t *frame)
 
 	if (pending2 & UART_IRQ_BIT) {
     uart_irq_handler();                // Handle UART first (create thread)
-    scheduler_context_switch(frame);   // Then do context switch
 }
 	if (pending1 & SYSTIMER_IRQ_BIT) {
 		systimer_handle_irq();
+    scheduler_context_switch(frame);   // Then do context switch
 	}
 
 	if (irq_debug) {
