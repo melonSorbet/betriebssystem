@@ -86,9 +86,7 @@ unsigned int cpsr;
     scheduler_context_switch(frame);
 		 uint32_t mode = frame->spsr & 0x1f;
 handle_exception(frame, "Supervisor Call", false, false, 0, 0, 0, 0, cpsr);
-	uart_putc(4);
-	while (true) {
-	}
+
 	bool is_user_mode = (mode == 0x10); // 0x10 = user mode
     if (is_user_mode) {
         // thread crash - terminate and continue
@@ -97,9 +95,9 @@ handle_exception(frame, "Supervisor Call", false, false, 0, 0, 0, 0, cpsr);
         scheduler_context_switch(frame);
     } else {
         // kernel crash - halt everything
-        while(1) {
-            __asm volatile("wfi");
-        }
+        	uart_putc(4);
+	while (true) {
+	}
     }
 
 }
@@ -138,10 +136,9 @@ void fiq_c(exc_frame_t *frame)
         
         scheduler_context_switch(frame);
     } else {
-        // kernel crash - halt everything
-        while(1) {
-            __asm volatile("wfi");
-        }
+        uart_putc(4);
+	while (true) {
+	}
     }
 
 
@@ -163,9 +160,9 @@ void undefined_instruction_c(exc_frame_t *frame)
         scheduler_context_switch(frame);
     } else {
         // kernel crash - halt everything
-        while(1) {
-            __asm volatile("wfi");
-        }
+         uart_putc(4);
+	while (true) {
+	}
     }
 
 }
@@ -188,10 +185,9 @@ void prefetch_abort_c(exc_frame_t *frame)
         
         scheduler_context_switch(frame);
     } else {
-        // kernel crash - halt everything
-        while(1) {
-            __asm volatile("wfi");
-        }
+         uart_putc(4);
+	while (true) {
+	}
     }
 }
 
@@ -212,10 +208,9 @@ void data_abort_c(exc_frame_t *frame)
         
         scheduler_context_switch(frame);
     } else {
-        // kernel crash - halt everything
-        while(1) {
-            __asm volatile("wfi");
-        }
+         uart_putc(4);
+	while (true) {
+	}
     }
 }
 
@@ -235,9 +230,8 @@ void not_used_c(exc_frame_t *frame)
         
         scheduler_context_switch(frame);
     } else {
-        // kernel crash - halt everything
-        while(1) {
-            __asm volatile("wfi");
-        }
+         uart_putc(4);
+	while (true) {
+	}
     }
 }
