@@ -144,7 +144,6 @@ void scheduler_schedule(void) {
     }
     
     // Print newline for context switch
-    uart_putc('\n');
     
     // Mark current thread as ready (if it was running and not idle)
     if (thread_table[current_thread_id].state == THREAD_STATE_RUNNING 
