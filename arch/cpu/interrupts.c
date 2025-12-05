@@ -77,12 +77,18 @@ static void handle_exception(exc_frame_t *frame, const char *name, bool is_data_
 #include <arch/cpu/scheduler.h>
 void software_interrupt_c(exc_frame_t *frame)
 {
+unsigned int cpsr;
+	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
     // Thread called exit - terminate current thread and switch to next
     scheduler_terminate_current_thread();
     
     // Perform context switch to the next thread
     scheduler_context_switch(frame);
 		 uint32_t mode = frame->spsr & 0x1f;
+handle_exception(frame, "Supervisor Call", false, false, 0, 0, 0, 0, cpsr);
+	uart_putc(4);
+	while (true) {
+	}
 	bool is_user_mode = (mode == 0x10); // 0x10 = user mode
     if (is_user_mode) {
         // thread crash - terminate and continue
