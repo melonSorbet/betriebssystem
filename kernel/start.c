@@ -23,9 +23,9 @@ void start_kernel [[noreturn]] (void)
     uart_init();
     systimer_init();
     scheduler_init();
-    kprintf("=== Betriebssystem gestartet ===\n");
  
-    scheduler_start();  // Never returns
     
     test_kernel();
+    kprintf("=== Betriebssystem gestartet ===\n");
+    scheduler_start();  // Never returns
 }
