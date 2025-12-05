@@ -135,8 +135,7 @@ void scheduler_schedule(void) {
         return;
     }
     
-    // Print newline for context switch (Requirement 13a)
-    uart_putc('\n');
+    uint32_t previous_thread_id = current_thread_id;
     
     // Mark current thread as ready (if it was running and not idle)
     if (thread_table[current_thread_id].state == THREAD_STATE_RUNNING 
@@ -159,6 +158,11 @@ void scheduler_schedule(void) {
         if (thread_table[next_id].state == THREAD_STATE_READY) {
             current_thread_id = next_id;
             thread_table[current_thread_id].state = THREAD_STATE_RUNNING;
+            
+            // Print newline only if we actually switched to a different thread
+            if (current_thread_id != previous_thread_id) {
+                uart_putc('\n');
+            }
             return;
         }
     }
@@ -166,6 +170,11 @@ void scheduler_schedule(void) {
     // No ready thread found - fall back to idle thread
     current_thread_id = IDLE_THREAD_ID;
     thread_table[IDLE_THREAD_ID].state = THREAD_STATE_RUNNING;
+    
+    // Print newline only if we switched to idle from a different thread
+    if (current_thread_id != previous_thread_id) {
+        uart_putc('\n');
+    }
 }
 
 void scheduler_terminate_current_thread(void) {

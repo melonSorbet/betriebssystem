@@ -42,7 +42,7 @@ static constexpr unsigned int UART_INPUT_BUFFER_SIZE = 128;
 // Timer Interrupt Interval zum testen in Mikrosekunden
 // Systimer taktet mit 1MHz
 // 1000000 -> 1 Sekunde
-static constexpr unsigned int TIMER_INTERVAL = 100000000;
+static constexpr unsigned int TIMER_INTERVAL = 1000000;
 
 #endif // __ASSEMBLER__
 #endif // CONFIG_H_
