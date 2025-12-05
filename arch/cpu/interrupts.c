@@ -83,23 +83,21 @@ void software_interrupt_c(exc_frame_t *frame)
 #include <arch/cpu/scheduler.h>
 void irq_c(exc_frame_t *frame)
 {
-	uint32_t pending1 = gpu_interrupt->IRQPending1;
-	uint32_t pending2 = gpu_interrupt->IRQPending2;
-
-	unsigned int cpsr;
-	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
-
-	if (pending2 & UART_IRQ_BIT) {
-		uart_irq_handler();
-	}
-	if (pending1 & SYSTIMER_IRQ_BIT) {
-		systimer_handle_irq();
-		scheduler_context_switch(frame);
-	}
-
-	if (irq_debug) {
-		handle_exception(frame, "IRQ", false, false, 0, 0, 0, 0, cpsr);
-	}
+    uint32_t pending1 = gpu_interrupt->IRQPending1;
+    uint32_t pending2 = gpu_interrupt->IRQPending2;
+    unsigned int cpsr;
+    asm volatile("mrs %0, cpsr" : "=r"(cpsr));
+    
+    if (pending2 & UART_IRQ_BIT) {
+        uart_irq_handler();
+    }
+    if (pending1 & SYSTIMER_IRQ_BIT) {
+        systimer_handle_irq();
+        scheduler_context_switch(frame);
+    }
+    if (irq_debug) {
+        handle_exception(frame, "IRQ", false, false, 0, 0, 0, 0, cpsr);
+    }
 }
 
 void fiq_c(exc_frame_t *frame)

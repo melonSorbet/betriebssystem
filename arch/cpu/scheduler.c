@@ -1,4 +1,3 @@
-	
 #include "arch/cpu/scheduler.h"
 #include <arch/bsp/uart.h>
 #include <arch/cpu/interrupts.h>
@@ -18,7 +17,7 @@ static void idle_thread(void *arg) {
     }
 }
 
-static void syscall_exit(void) {
+void syscall_exit(void) {
     __asm volatile("svc #0");
     // Never returns
     while(1);
@@ -48,7 +47,7 @@ void scheduler_init(void) {
     
     // Create idle thread (thread 0)
     current_thread_id = 0;
-    thread_table[0].state = THREAD_STATE_RUNNING;
+    thread_table[0].state = THREAD_STATE_READY;
     
     // Initialize all registers to 0
     memset(&thread_table[0].context, 0, sizeof(thread_context_t));
@@ -61,15 +60,19 @@ void scheduler_init(void) {
     thread_table[0].context.lr = (uint32_t)idle_thread;
     thread_table[0].context.cpsr = 0x10; // User mode, IRQ enabled
     
+    // Debug: verify idle thread setup
+    kprintf("Idle thread setup: LR=0x%08x, SP=0x%08x\n", 
+            thread_table[0].context.lr, thread_table[0].context.sp);
+    
     scheduler_running = false;
 }
 
 void scheduler_start [[noreturn]] (void) {
     scheduler_running = true;
-    
     while (1) {
     
-    }   
+    }
+    __builtin_unreachable();
 }
 
 void scheduler_thread_create(void (*func)(void *), const void *arg, unsigned int arg_size) {
@@ -92,17 +95,6 @@ void scheduler_thread_create(void (*func)(void *), const void *arg, unsigned int
         __asm volatile("msr cpsr_c, %0" : : "r"(cpsr));
         return;
     }
-    
-    // Debug: Count active threads
-    #ifdef DEBUG_THREADS
-    int active_count = 0;
-    for (int i = 0; i < MAX_THREADS; i++) {
-        if (thread_table[i].state != THREAD_STATE_TERMINATED) {
-            active_count++;
-        }
-    }
-    kprintf("Creating thread %d (total active: %d)\n", free_slot, active_count);
-    #endif
     
     tcb_t *new_thread = &thread_table[free_slot];
     
@@ -143,7 +135,8 @@ void scheduler_schedule(void) {
         return;
     }
     
-    // Print newline for context switch
+    // Print newline for context switch (Requirement 13a)
+    uart_putc('\n');
     
     // Mark current thread as ready (if it was running and not idle)
     if (thread_table[current_thread_id].state == THREAD_STATE_RUNNING 
@@ -192,24 +185,28 @@ void scheduler_context_switch(exc_frame_t *frame) {
         return;
     }
     
-    // Save current thread context from exception frame
-    tcb_t *current = &thread_table[current_thread_id];
-    current->context.cpsr = frame->spsr;
-    current->context.sp = frame->sp;
-    current->context.r0 = frame->r0;
-    current->context.r1 = frame->r1;
-    current->context.r2 = frame->r2;
-    current->context.r3 = frame->r3;
-    current->context.r4 = frame->r4;
-    current->context.r5 = frame->r5;
-    current->context.r6 = frame->r6;
-    current->context.r7 = frame->r7;
-    current->context.r8 = frame->r8;
-    current->context.r9 = frame->r9;
-    current->context.r10 = frame->r10;
-    current->context.r11 = frame->r11;
-    current->context.r12 = frame->r12;
-    current->context.lr = frame->lr;
+    // Only save context if we're switching FROM a user thread
+    // (not from the initial supervisor mode wfi loop)
+    if (thread_table[current_thread_id].state == THREAD_STATE_RUNNING) {
+        // Save current thread context from exception frame
+        tcb_t *current = &thread_table[current_thread_id];
+        current->context.cpsr = frame->spsr;
+        current->context.sp = frame->sp;
+        current->context.r0 = frame->r0;
+        current->context.r1 = frame->r1;
+        current->context.r2 = frame->r2;
+        current->context.r3 = frame->r3;
+        current->context.r4 = frame->r4;
+        current->context.r5 = frame->r5;
+        current->context.r6 = frame->r6;
+        current->context.r7 = frame->r7;
+        current->context.r8 = frame->r8;
+        current->context.r9 = frame->r9;
+        current->context.r10 = frame->r10;
+        current->context.r11 = frame->r11;
+        current->context.r12 = frame->r12;
+        current->context.lr = frame->lr;
+    }
     
     // Select next thread
     scheduler_schedule();
