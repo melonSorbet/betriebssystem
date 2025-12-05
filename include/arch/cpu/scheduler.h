@@ -31,7 +31,6 @@ typedef struct {
     uint32_t r12;
     uint32_t sp;
     uint32_t lr;
-    uint32_t pc;
     uint32_t cpsr;
 } thread_context_t;
 
