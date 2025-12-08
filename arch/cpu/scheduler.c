@@ -143,12 +143,11 @@ void scheduler_schedule(void) {
         return;
     }
     
-    // Print newline for context switch
-    uart_putc('\n');
+    // Save the current thread ID to check if we actually switch
+    uint32_t old_thread_id = current_thread_id;
     
-    // Mark current thread as ready (if it was running and not idle)
-    if (thread_table[current_thread_id].state == THREAD_STATE_RUNNING 
-        && current_thread_id != IDLE_THREAD_ID) {
+    // Mark current thread as ready (if it was running and not terminated)
+    if (thread_table[current_thread_id].state == THREAD_STATE_RUNNING) {
         thread_table[current_thread_id].state = THREAD_STATE_READY;
     }
     
@@ -167,6 +166,11 @@ void scheduler_schedule(void) {
         if (thread_table[next_id].state == THREAD_STATE_READY) {
             current_thread_id = next_id;
             thread_table[current_thread_id].state = THREAD_STATE_RUNNING;
+            
+            // Only print newline if we ACTUALLY switched to a different thread
+            if (old_thread_id != current_thread_id) {
+                uart_putc('\n');
+            }
             return;
         }
     }
@@ -174,18 +178,19 @@ void scheduler_schedule(void) {
     // No ready thread found - fall back to idle thread
     current_thread_id = IDLE_THREAD_ID;
     thread_table[IDLE_THREAD_ID].state = THREAD_STATE_RUNNING;
+    
+    // Only print newline if we actually switched to idle
+    if (old_thread_id != IDLE_THREAD_ID) {
+        uart_putc('\n');
+    }
 }
 
 void scheduler_terminate_current_thread(void) {
     // Mark current thread as terminated
     thread_table[current_thread_id].state = THREAD_STATE_TERMINATED;
     
-    // Schedule next thread
+    // Schedule next thread (this will NOT print \n if we stay on same thread)
     scheduler_schedule();
-}
-
-tcb_t* scheduler_get_current_thread(void) {
-    return &thread_table[current_thread_id];
 }
 
 void scheduler_context_switch(exc_frame_t *frame) {
@@ -193,24 +198,27 @@ void scheduler_context_switch(exc_frame_t *frame) {
         return;
     }
     
-    // Save current thread context from exception frame
-    tcb_t *current = &thread_table[current_thread_id];
-    current->context.cpsr = frame->spsr;
-    current->context.sp = frame->sp;
-    current->context.r0 = frame->r0;
-    current->context.r1 = frame->r1;
-    current->context.r2 = frame->r2;
-    current->context.r3 = frame->r3;
-    current->context.r4 = frame->r4;
-    current->context.r5 = frame->r5;
-    current->context.r6 = frame->r6;
-    current->context.r7 = frame->r7;
-    current->context.r8 = frame->r8;
-    current->context.r9 = frame->r9;
-    current->context.r10 = frame->r10;
-    current->context.r11 = frame->r11;
-    current->context.r12 = frame->r12;
-    current->context.lr = frame->lr;
+    // Don't save context if current thread is terminated
+    if (thread_table[current_thread_id].state != THREAD_STATE_TERMINATED) {
+        // Save current thread context from exception frame
+        tcb_t *current = &thread_table[current_thread_id];
+        current->context.cpsr = frame->spsr;
+        current->context.sp = frame->sp;
+        current->context.r0 = frame->r0;
+        current->context.r1 = frame->r1;
+        current->context.r2 = frame->r2;
+        current->context.r3 = frame->r3;
+        current->context.r4 = frame->r4;
+        current->context.r5 = frame->r5;
+        current->context.r6 = frame->r6;
+        current->context.r7 = frame->r7;
+        current->context.r8 = frame->r8;
+        current->context.r9 = frame->r9;
+        current->context.r10 = frame->r10;
+        current->context.r11 = frame->r11;
+        current->context.r12 = frame->r12;
+        current->context.lr = frame->lr;
+    }
     
     // Select next thread
     scheduler_schedule();
