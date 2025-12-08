@@ -48,6 +48,6 @@ void scheduler_thread_create(void (*func)(void *), const void *arg, unsigned int
 void scheduler_schedule(void);
 void scheduler_terminate_current_thread(void);
 tcb_t* scheduler_get_current_thread(void);
-
+void syscall_exit(void);
 void scheduler_context_switch(exc_frame_t *frame);
 #endif // SCHEDULER_H

@@ -17,7 +17,7 @@ static void idle_thread(void *arg) {
     }
 }
 
-static void syscall_exit(void) {
+void syscall_exit(void) {
     __asm volatile("svc #0");
     // Never returns
     while(1);
