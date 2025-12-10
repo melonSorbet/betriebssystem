@@ -187,52 +187,63 @@ void scheduler_terminate_current_thread(void) {
     // Schedule next thread (this will NOT print \n if we stay on same thread)
 }
 
+
 void scheduler_context_switch(exc_frame_t *frame) {
     if (!scheduler_running) {
         return;
     }
-    
-    // Don't save context if current thread is terminated
-    if (thread_table[current_thread_id].state != THREAD_STATE_TERMINATED) {
-        // Save current thread context from exception frame
-        tcb_t *current = &thread_table[current_thread_id];
+
+    tcb_t *current = &thread_table[current_thread_id];
+
+    // Save context only if current thread is not terminated
+    if (current->state != THREAD_STATE_TERMINATED) {
         current->context.cpsr = frame->spsr;
-        current->context.sp = frame->sp;
-        current->context.r0 = frame->r0;
-        current->context.r1 = frame->r1;
-        current->context.r2 = frame->r2;
-        current->context.r3 = frame->r3;
-        current->context.r4 = frame->r4;
-        current->context.r5 = frame->r5;
-        current->context.r6 = frame->r6;
-        current->context.r7 = frame->r7;
-        current->context.r8 = frame->r8;
-        current->context.r9 = frame->r9;
+        current->context.sp   = frame->sp;
+        current->context.r0  = frame->r0;
+        current->context.r1  = frame->r1;
+        current->context.r2  = frame->r2;
+        current->context.r3  = frame->r3;
+        current->context.r4  = frame->r4;
+        current->context.r5  = frame->r5;
+        current->context.r6  = frame->r6;
+        current->context.r7  = frame->r7;
+        current->context.r8  = frame->r8;
+        current->context.r9  = frame->r9;
         current->context.r10 = frame->r10;
         current->context.r11 = frame->r11;
         current->context.r12 = frame->r12;
-        current->context.lr = frame->lr;
+        current->context.lr  = frame->lr;
     }
-    
+
     // Select next thread
     scheduler_schedule();
-    
-    // Restore next thread context to exception frame
+
     tcb_t *next = &thread_table[current_thread_id];
+
+    // Ensure idle thread is correctly restored if needed
+    if (next->state == THREAD_STATE_TERMINATED) {
+        // Idle fallback
+        next = &thread_table[0];
+        current_thread_id = 0;
+        next->state = THREAD_STATE_RUNNING;
+    }
+
+    // Restore next thread context
     frame->spsr = next->context.cpsr;
-    frame->sp = next->context.sp;
-    frame->r0 = next->context.r0;
-    frame->r1 = next->context.r1;
-    frame->r2 = next->context.r2;
-    frame->r3 = next->context.r3;
-    frame->r4 = next->context.r4;
-    frame->r5 = next->context.r5;
-    frame->r6 = next->context.r6;
-    frame->r7 = next->context.r7;
-    frame->r8 = next->context.r8;
-    frame->r9 = next->context.r9;
-    frame->r10 = next->context.r10;
-    frame->r11 = next->context.r11;
-    frame->r12 = next->context.r12;
-    frame->lr = next->context.lr;
+    frame->sp   = next->context.sp;
+    frame->r0   = next->context.r0;
+    frame->r1   = next->context.r1;
+    frame->r2   = next->context.r2;
+    frame->r3   = next->context.r3;
+    frame->r4   = next->context.r4;
+    frame->r5   = next->context.r5;
+    frame->r6   = next->context.r6;
+    frame->r7   = next->context.r7;
+    frame->r8   = next->context.r8;
+    frame->r9   = next->context.r9;
+    frame->r10  = next->context.r10;
+    frame->r11  = next->context.r11;
+    frame->r12  = next->context.r12;
+    frame->lr   = next->context.lr;
 }
+
