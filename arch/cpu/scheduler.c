@@ -13,7 +13,6 @@ static bool scheduler_running = false;
 static void idle_thread(void *arg) {
     (void)arg;
     while (1) {
-        __asm volatile("wfi"); // Wait for interrupt
     }
 }
 
@@ -179,10 +178,6 @@ void scheduler_schedule(void) {
     current_thread_id = IDLE_THREAD_ID;
     thread_table[IDLE_THREAD_ID].state = THREAD_STATE_RUNNING;
     
-    // Only print newline if we actually switched to idle
-    if (old_thread_id != IDLE_THREAD_ID) {
-        uart_putc('\n');
-    }
 }
 
 void scheduler_terminate_current_thread(void) {
