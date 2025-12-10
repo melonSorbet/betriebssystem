@@ -34,7 +34,7 @@ static constexpr unsigned int BUSY_WAIT_COUNTER = 10000000;
 static constexpr unsigned int BUSY_WAIT_COUNTER = 30000;
 #endif // BUILD_FOR_QEMU
 
-static constexpr unsigned int PRINT_COUNT = 4;
+static constexpr unsigned int PRINT_COUNT = 12;
 
 // Wir testen nur mit Werten die durch 2^n darstellbar sind
 static constexpr unsigned int UART_INPUT_BUFFER_SIZE = 128;
