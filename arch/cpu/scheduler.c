@@ -190,7 +190,6 @@ void scheduler_terminate_current_thread(void) {
     thread_table[current_thread_id].state = THREAD_STATE_TERMINATED;
     
     // Schedule next thread (this will NOT print \n if we stay on same thread)
-    scheduler_schedule();
 }
 
 void scheduler_context_switch(exc_frame_t *frame) {
