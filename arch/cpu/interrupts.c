@@ -131,7 +131,7 @@ void fiq_c(exc_frame_t *frame)
         
         scheduler_context_switch(frame);
     } else {
-        uart_putc(4);
+        uart_putc('\4');
 	while (true) {
 	}
     }
@@ -155,7 +155,7 @@ void undefined_instruction_c(exc_frame_t *frame)
         scheduler_context_switch(frame);
     } else {
         // kernel crash - halt everything
-         uart_putc(4);
+        uart_putc('\4');
 	while (true) {
 	}
     }
@@ -180,7 +180,7 @@ void prefetch_abort_c(exc_frame_t *frame)
         
         scheduler_context_switch(frame);
     } else {
-         uart_putc(4);
+        uart_putc('\4');
 	while (true) {
 	}
     }
@@ -203,7 +203,7 @@ void data_abort_c(exc_frame_t *frame)
         
         scheduler_context_switch(frame);
     } else {
-         uart_putc(4);
+        uart_putc('\4');
 	while (true) {
 	}
     }
@@ -225,7 +225,7 @@ void not_used_c(exc_frame_t *frame)
         
         scheduler_context_switch(frame);
     } else {
-         uart_putc(4);
+        uart_putc('\4');
 	while (true) {
 	}
     }
