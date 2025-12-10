@@ -188,27 +188,26 @@ void prefetch_abort_c(exc_frame_t *frame)
 
 void data_abort_c(exc_frame_t *frame)
 {
-	unsigned int dfsr = read_dfsr();
-	unsigned int dfar = read_dfar();
-	unsigned int cpsr;
-	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
-
-	handle_exception(frame, "Data Abort", true, false, dfsr, dfar, 0, 0, cpsr);
-
-	 uint32_t mode = frame->spsr & 0x1f;
-    bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+    unsigned int dfsr = read_dfsr();
+    unsigned int dfar = read_dfar();
+    unsigned int cpsr;
+    asm volatile("mrs %0, cpsr" : "=r"(cpsr));
+    
+    handle_exception(frame, "Data Abort", true, false, dfsr, dfar, 0, 0, cpsr);
+    
+    uint32_t mode = frame->spsr & 0x1f;
+    bool is_user_mode = (mode == 0x10);
+    
+    
     if (is_user_mode) {
-        // thread crash - terminate and continue
         scheduler_terminate_current_thread();
         
         scheduler_context_switch(frame);
     } else {
         uart_putc('\4');
-	while (true) {
-	}
+        while (true) {}
     }
 }
-
 void not_used_c(exc_frame_t *frame)
 {
 	unsigned int cpsr;

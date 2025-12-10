@@ -23,17 +23,28 @@ void syscall_exit(void) {
 }
 
 // Thread wrapper - calls thread function and exits when done
+// Diese Funktion bekommt func und arg als Parameter (in r0 und r1)!
 static void thread_wrapper(void) {
-    tcb_t *current = &thread_table[current_thread_id];
+    uint32_t func_ptr, arg_ptr;
     
-    // Get the actual thread function and argument
-    void (*func)(void *) = (void (*)(void *))current->context.r0;
-    void *arg = (void *)current->context.r1;
+    // Actually read r0 and r1 at the start of the function
+    __asm volatile(
+        "mov %0, r0\n"
+        "mov %1, r1\n"
+        : "=r"(func_ptr), "=r"(arg_ptr)
+        :
+        : "r0", "r1"
+    );
     
-    // Call the thread function
+    
+    void (*func)(void *) = (void (*)(void *))func_ptr;
+    void *arg = (void *)arg_ptr;
+    
+    if (arg) {
+    }
+    
     func(arg);
     
-    // Thread finished - exit
     syscall_exit();
 }
 
@@ -92,17 +103,6 @@ void scheduler_thread_create(void (*func)(void *), const void *arg, unsigned int
         return;
     }
     
-    // Debug: Count active threads
-    #ifdef DEBUG_THREADS
-    int active_count = 0;
-    for (int i = 0; i < MAX_THREADS; i++) {
-        if (thread_table[i].state != THREAD_STATE_TERMINATED) {
-            active_count++;
-        }
-    }
-    kprintf("Creating thread %d (total active: %d)\n", free_slot, active_count);
-    #endif
-    
     tcb_t *new_thread = &thread_table[free_slot];
     
     // Get stack top address and align down to 8-byte boundary
@@ -119,6 +119,7 @@ void scheduler_thread_create(void (*func)(void *), const void *arg, unsigned int
         // Copy argument data to thread stack
         memcpy((void *)stack_top, arg, arg_size);
         arg_ptr = (void *)stack_top;
+        
     }
     
     // Initialize thread context
@@ -133,40 +134,37 @@ void scheduler_thread_create(void (*func)(void *), const void *arg, unsigned int
     new_thread->state = THREAD_STATE_READY;
     new_thread->thread_id = free_slot;
     
+    
     // Restore interrupts
     __asm volatile("msr cpsr_c, %0" : : "r"(cpsr));
-}
-
-void scheduler_schedule(void) {
+}void scheduler_schedule(void) {
     if (!scheduler_running) {
         return;
     }
     
-    // Save the current thread ID to check if we actually switch
     uint32_t old_thread_id = current_thread_id;
     
-    // Mark current thread as ready (if it was running and not terminated)
+    
+    // Mark current as ready
     if (thread_table[current_thread_id].state == THREAD_STATE_RUNNING) {
         thread_table[current_thread_id].state = THREAD_STATE_READY;
     }
     
-    // Round-robin through threads 1 to MAX_THREADS-1 (skip idle at 0)
-    // Start searching from the thread after current
+    // Search for next thread
     uint32_t next_id = current_thread_id;
     
     for (uint32_t count = 0; count < MAX_THREADS - 1; count++) {
-        // Move to next thread (wrapping around within 1..MAX_THREADS-1)
         if (next_id == 0 || next_id >= MAX_THREADS - 1) {
             next_id = 1;
         } else {
             next_id++;
         }
         
+        
         if (thread_table[next_id].state == THREAD_STATE_READY) {
             current_thread_id = next_id;
             thread_table[current_thread_id].state = THREAD_STATE_RUNNING;
             
-            // Only print newline if we ACTUALLY switched to a different thread
             if (old_thread_id != current_thread_id) {
                 uart_putc('\n');
             }
@@ -174,13 +172,10 @@ void scheduler_schedule(void) {
         }
     }
     
-    // No ready thread found - fall back to idle thread
+    // Fallback to idle
     current_thread_id = IDLE_THREAD_ID;
     thread_table[IDLE_THREAD_ID].state = THREAD_STATE_RUNNING;
-    
-}
-
-void scheduler_terminate_current_thread(void) {
+}void scheduler_terminate_current_thread(void) {
     // Mark current thread as terminated
     thread_table[current_thread_id].state = THREAD_STATE_TERMINATED;
     
@@ -194,9 +189,14 @@ void scheduler_context_switch(exc_frame_t *frame) {
     }
 
     tcb_t *current = &thread_table[current_thread_id];
+    uint32_t old_thread_id = current_thread_id;
 
-    // Save context only if current thread is not terminated
-    if (current->state != THREAD_STATE_TERMINATED) {
+    // Select next thread FIRST
+    scheduler_schedule();
+
+    // Only save context if we're switching away from a thread that was running
+    // (not if it's the first time being scheduled)
+    if (old_thread_id != current_thread_id && current->state != THREAD_STATE_TERMINATED) {
         current->context.cpsr = frame->spsr;
         current->context.sp   = frame->sp;
         current->context.r0  = frame->r0;
@@ -215,14 +215,10 @@ void scheduler_context_switch(exc_frame_t *frame) {
         current->context.lr  = frame->lr;
     }
 
-    // Select next thread
-    scheduler_schedule();
-
     tcb_t *next = &thread_table[current_thread_id];
 
     // Ensure idle thread is correctly restored if needed
     if (next->state == THREAD_STATE_TERMINATED) {
-        // Idle fallback
         next = &thread_table[0];
         current_thread_id = 0;
         next->state = THREAD_STATE_RUNNING;
@@ -246,4 +242,3 @@ void scheduler_context_switch(exc_frame_t *frame) {
     frame->r12  = next->context.r12;
     frame->lr   = next->context.lr;
 }
-
