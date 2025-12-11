@@ -14,7 +14,6 @@ typedef enum {
     THREAD_STATE_TERMINATED
 } thread_state_t;
 
-// Thread Control Block
 typedef struct {
     uint32_t r0;
     uint32_t r1;
@@ -39,9 +38,8 @@ typedef struct {
     thread_context_t context;
     thread_state_t state;
     uint32_t thread_id;
-    // ... any other fields ...
     uint8_t stack[THREAD_STACK_SIZE];
-} tcb_t;// Public API
+} tcb_t;
 void scheduler_init(void);
 void scheduler_start [[noreturn]] (void);
 void scheduler_thread_create(void (*func)(void *), const void *arg, unsigned int arg_size);
@@ -50,4 +48,4 @@ void scheduler_terminate_current_thread(void);
 tcb_t* scheduler_get_current_thread(void);
 void syscall_exit(void);
 void scheduler_context_switch(exc_frame_t *frame);
-#endif // SCHEDULER_H
+#endif

@@ -5,7 +5,7 @@
 
 typedef struct {
 	uint32_t spsr;
-	uint32_t sp;      // Add this - user mode stack pointer
+	uint32_t sp;
 	uint32_t r0;
 	uint32_t r1;
 	uint32_t r2;

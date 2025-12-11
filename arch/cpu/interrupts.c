@@ -74,20 +74,18 @@ static void handle_exception(exc_frame_t *frame, const char *name, bool is_data_
 			      ifsr, ifar, cpsr, irq_spsr, abort_spsr, undefined_spsr,
 			      supervisor_spsr);
 }
+
 #include <arch/cpu/scheduler.h>
+
 void software_interrupt_c(exc_frame_t *frame)
 {
     uint32_t mode = frame->spsr & 0x1f;
-    bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+    bool is_user_mode = (mode == 0x10);
 
     if (is_user_mode) {
-        // User mode SVC = thread wants to exit
-        // Terminate current thread and switch to next
         scheduler_terminate_current_thread();
         scheduler_context_switch(frame);
-        // After context switch, we return and the new thread continues
     } else {
-        // Kernel mode SVC = kernel crash
         unsigned int cpsr;
         asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
@@ -97,6 +95,7 @@ void software_interrupt_c(exc_frame_t *frame)
         while (true) {}
     }
 }
+
 void irq_c(exc_frame_t *frame)
 {
 	uint32_t pending1 = gpu_interrupt->IRQPending1;
@@ -106,11 +105,11 @@ void irq_c(exc_frame_t *frame)
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
 	if (pending2 & UART_IRQ_BIT) {
-    uart_irq_handler();                // Handle UART first (create thread)
-}
+		uart_irq_handler();
+	}
 	if (pending1 & SYSTIMER_IRQ_BIT) {
 		systimer_handle_irq();
-    scheduler_context_switch(frame);   // Then do context switch
+		scheduler_context_switch(frame);
 	}
 
 	if (irq_debug) {
@@ -123,20 +122,15 @@ void fiq_c(exc_frame_t *frame)
 	unsigned int cpsr;
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 	handle_exception(frame, "FIQ", false, false, 0, 0, 0, 0, cpsr);
-		 uint32_t mode = frame->spsr & 0x1f;
-	bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+	uint32_t mode = frame->spsr & 0x1f;
+	bool is_user_mode = (mode == 0x10);
     if (is_user_mode) {
-        // thread crash - terminate and continue
         scheduler_terminate_current_thread();
-        
         scheduler_context_switch(frame);
     } else {
         uart_putc('\4');
-	while (true) {
-	}
+	while (true) {}
     }
-
-
 }
 
 void undefined_instruction_c(exc_frame_t *frame)
@@ -145,21 +139,15 @@ void undefined_instruction_c(exc_frame_t *frame)
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 	handle_exception(frame, "Undefined Instruction", false, false, 0, 0, 0, 0, cpsr);
 
-	
-	 uint32_t mode = frame->spsr & 0x1f;
-	bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+	uint32_t mode = frame->spsr & 0x1f;
+	bool is_user_mode = (mode == 0x10);
     if (is_user_mode) {
-        // thread crash - terminate and continue
         scheduler_terminate_current_thread();
-        
         scheduler_context_switch(frame);
     } else {
-        // kernel crash - halt everything
         uart_putc('\4');
-	while (true) {
-	}
+	while (true) {}
     }
-
 }
 
 void prefetch_abort_c(exc_frame_t *frame)
@@ -169,20 +157,16 @@ void prefetch_abort_c(exc_frame_t *frame)
 	unsigned int cpsr;
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
-
-   
 	handle_exception(frame, "Prefetch Abort", false, true, 0, 0, ifsr, ifar, cpsr);
-     uint32_t mode = frame->spsr & 0x1f;
-    bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+
+    uint32_t mode = frame->spsr & 0x1f;
+    bool is_user_mode = (mode == 0x10);
     if (is_user_mode) {
-        // thread crash - terminate and continue
         scheduler_terminate_current_thread();
-        
         scheduler_context_switch(frame);
     } else {
         uart_putc('\4');
-	while (true) {
-	}
+	while (true) {}
     }
 }
 
@@ -198,16 +182,15 @@ void data_abort_c(exc_frame_t *frame)
     uint32_t mode = frame->spsr & 0x1f;
     bool is_user_mode = (mode == 0x10);
     
-    
     if (is_user_mode) {
         scheduler_terminate_current_thread();
-        
         scheduler_context_switch(frame);
     } else {
         uart_putc('\4');
         while (true) {}
     }
 }
+
 void not_used_c(exc_frame_t *frame)
 {
 	unsigned int cpsr;
@@ -215,17 +198,14 @@ void not_used_c(exc_frame_t *frame)
 
 	handle_exception(frame, "Not Used", false, false, 0, 0, 0, 0, cpsr);
 
-
-	 uint32_t mode = frame->spsr & 0x1f;
-	bool is_user_mode = (mode == 0x10); // 0x10 = user mode
+	uint32_t mode = frame->spsr & 0x1f;
+	bool is_user_mode = (mode == 0x10);
     if (is_user_mode) {
-        // thread crash - terminate and continue
         scheduler_terminate_current_thread();
-        
         scheduler_context_switch(frame);
     } else {
         uart_putc('\4');
-	while (true) {
-	}
+	while (true) {}
     }
 }
+
