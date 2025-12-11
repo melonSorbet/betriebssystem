@@ -110,39 +110,39 @@ bool uart_data_available(void)
 #include <user/main.h>
 void uart_irq_handler(void)
 {
-    if (uart->MIS & (PL011_INT_RX | PL011_INT_RT)) {
-        while (!(uart->FR & PL011_FR_RXFE)) {
-            uint32_t data = uart->DR;
-            if (data & (1 << 8)) {
-                volatile uint32_t error_clear = uart->RSR_ECR;
-                (void)error_clear;
-                continue;
-            }
-            char c = (char)(data & 0xFF);
-            
-            switch (c) {
-                case 'S':
-                    do_svc(); 
-                    break;
-                case 'P':
-                    do_prefetch_abort();
-                    break;
-                case 'A':
-                    do_data_abort();
-                    break;
-                case 'U':
-                    do_undef();
-                    break;
-                default:
-                    // Pass address of c directly - scheduler_thread_create will copy it
-                    scheduler_thread_create(main, &c, sizeof(c));
-                    break;
-            }
-            
-            buff_putc(uart_rx_buffer, c);
-        }
-    }
-    uart->ICR = PL011_INT_RX | PL011_INT_RT | PL011_INT_OE;
+	if (uart->MIS & (PL011_INT_RX | PL011_INT_RT)) {
+		while (!(uart->FR & PL011_FR_RXFE)) {
+			uint32_t data = uart->DR;
+			if (data & (1 << 8)) {
+				volatile uint32_t error_clear = uart->RSR_ECR;
+				(void)error_clear;
+				continue;
+			}
+			char c = (char)(data & 0xFF);
+
+			switch (c) {
+			case 'S':
+				do_svc();
+				break;
+			case 'P':
+				do_prefetch_abort();
+				break;
+			case 'A':
+				do_data_abort();
+				break;
+			case 'U':
+				do_undef();
+				break;
+			default:
+				// Pass address of c directly - scheduler_thread_create will copy it
+				scheduler_thread_create(main, &c, sizeof(c));
+				break;
+			}
+
+			buff_putc(uart_rx_buffer, c);
+		}
+	}
+	uart->ICR = PL011_INT_RX | PL011_INT_RT | PL011_INT_OE;
 }
 bool uart_tx_ready(void)
 {

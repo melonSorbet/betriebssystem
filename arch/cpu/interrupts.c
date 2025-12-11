@@ -79,21 +79,22 @@ static void handle_exception(exc_frame_t *frame, const char *name, bool is_data_
 
 void software_interrupt_c(exc_frame_t *frame)
 {
-    uint32_t mode = frame->spsr & 0x1f;
-    bool is_user_mode = (mode == 0x10);
+	uint32_t mode	      = frame->spsr & 0x1f;
+	bool	 is_user_mode = (mode == 0x10);
 
-    if (is_user_mode) {
-        scheduler_terminate_current_thread();
-        scheduler_context_switch(frame);
-    } else {
-        unsigned int cpsr;
-        asm volatile("mrs %0, cpsr" : "=r"(cpsr));
+	if (is_user_mode) {
+		scheduler_terminate_current_thread();
+		scheduler_context_switch(frame);
+	} else {
+		unsigned int cpsr;
+		asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 
-        handle_exception(frame, "Supervisor Call", false, false, 0, 0, 0, 0, cpsr);
+		handle_exception(frame, "Supervisor Call", false, false, 0, 0, 0, 0, cpsr);
 
-        uart_putc('\4');
-        while (true) {}
-    }
+		uart_putc('\4');
+		while (true) {
+		}
+	}
 }
 
 void irq_c(exc_frame_t *frame)
@@ -122,15 +123,16 @@ void fiq_c(exc_frame_t *frame)
 	unsigned int cpsr;
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 	handle_exception(frame, "FIQ", false, false, 0, 0, 0, 0, cpsr);
-	uint32_t mode = frame->spsr & 0x1f;
-	bool is_user_mode = (mode == 0x10);
-    if (is_user_mode) {
-        scheduler_terminate_current_thread();
-        scheduler_context_switch(frame);
-    } else {
-        uart_putc('\4');
-	while (true) {}
-    }
+	uint32_t mode	      = frame->spsr & 0x1f;
+	bool	 is_user_mode = (mode == 0x10);
+	if (is_user_mode) {
+		scheduler_terminate_current_thread();
+		scheduler_context_switch(frame);
+	} else {
+		uart_putc('\4');
+		while (true) {
+		}
+	}
 }
 
 void undefined_instruction_c(exc_frame_t *frame)
@@ -139,15 +141,16 @@ void undefined_instruction_c(exc_frame_t *frame)
 	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
 	handle_exception(frame, "Undefined Instruction", false, false, 0, 0, 0, 0, cpsr);
 
-	uint32_t mode = frame->spsr & 0x1f;
-	bool is_user_mode = (mode == 0x10);
-    if (is_user_mode) {
-        scheduler_terminate_current_thread();
-        scheduler_context_switch(frame);
-    } else {
-        uart_putc('\4');
-	while (true) {}
-    }
+	uint32_t mode	      = frame->spsr & 0x1f;
+	bool	 is_user_mode = (mode == 0x10);
+	if (is_user_mode) {
+		scheduler_terminate_current_thread();
+		scheduler_context_switch(frame);
+	} else {
+		uart_putc('\4');
+		while (true) {
+		}
+	}
 }
 
 void prefetch_abort_c(exc_frame_t *frame)
@@ -159,36 +162,38 @@ void prefetch_abort_c(exc_frame_t *frame)
 
 	handle_exception(frame, "Prefetch Abort", false, true, 0, 0, ifsr, ifar, cpsr);
 
-    uint32_t mode = frame->spsr & 0x1f;
-    bool is_user_mode = (mode == 0x10);
-    if (is_user_mode) {
-        scheduler_terminate_current_thread();
-        scheduler_context_switch(frame);
-    } else {
-        uart_putc('\4');
-	while (true) {}
-    }
+	uint32_t mode	      = frame->spsr & 0x1f;
+	bool	 is_user_mode = (mode == 0x10);
+	if (is_user_mode) {
+		scheduler_terminate_current_thread();
+		scheduler_context_switch(frame);
+	} else {
+		uart_putc('\4');
+		while (true) {
+		}
+	}
 }
 
 void data_abort_c(exc_frame_t *frame)
 {
-    unsigned int dfsr = read_dfsr();
-    unsigned int dfar = read_dfar();
-    unsigned int cpsr;
-    asm volatile("mrs %0, cpsr" : "=r"(cpsr));
-    
-    handle_exception(frame, "Data Abort", true, false, dfsr, dfar, 0, 0, cpsr);
-    
-    uint32_t mode = frame->spsr & 0x1f;
-    bool is_user_mode = (mode == 0x10);
-    
-    if (is_user_mode) {
-        scheduler_terminate_current_thread();
-        scheduler_context_switch(frame);
-    } else {
-        uart_putc('\4');
-        while (true) {}
-    }
+	unsigned int dfsr = read_dfsr();
+	unsigned int dfar = read_dfar();
+	unsigned int cpsr;
+	asm volatile("mrs %0, cpsr" : "=r"(cpsr));
+
+	handle_exception(frame, "Data Abort", true, false, dfsr, dfar, 0, 0, cpsr);
+
+	uint32_t mode	      = frame->spsr & 0x1f;
+	bool	 is_user_mode = (mode == 0x10);
+
+	if (is_user_mode) {
+		scheduler_terminate_current_thread();
+		scheduler_context_switch(frame);
+	} else {
+		uart_putc('\4');
+		while (true) {
+		}
+	}
 }
 
 void not_used_c(exc_frame_t *frame)
@@ -198,14 +203,14 @@ void not_used_c(exc_frame_t *frame)
 
 	handle_exception(frame, "Not Used", false, false, 0, 0, 0, 0, cpsr);
 
-	uint32_t mode = frame->spsr & 0x1f;
-	bool is_user_mode = (mode == 0x10);
-    if (is_user_mode) {
-        scheduler_terminate_current_thread();
-        scheduler_context_switch(frame);
-    } else {
-        uart_putc('\4');
-	while (true) {}
-    }
+	uint32_t mode	      = frame->spsr & 0x1f;
+	bool	 is_user_mode = (mode == 0x10);
+	if (is_user_mode) {
+		scheduler_terminate_current_thread();
+		scheduler_context_switch(frame);
+	} else {
+		uart_putc('\4');
+		while (true) {
+		}
+	}
 }
-
